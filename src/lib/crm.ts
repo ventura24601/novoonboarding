@@ -1,32 +1,52 @@
-export const PRODUCTS = ["Black", "Redes", "WhatsApp", "Google", "Discador", "AppCrc", "IA Agendamento"] as const;
-
 export const CLIENT_TYPES = [
   { value: "aluno", label: "Aluno" },
   { value: "nao_aluno", label: "Não aluno" },
 ] as const;
 
-export type ClientStatus = "novo" | "aguardando_assinatura" | "em_onboarding" | "finalizado";
+/** Etapa 1 (Contratos) → Etapa 2 (Onboarding). Produtos vêm da tabela public.produtos. */
+export type ClientStatus =
+  | "aguardando_assinatura"
+  | "aguardando_pagamento"
+  | "aguardando_verificacao"
+  | "pronto_para_liberar"
+  | "em_onboarding"
+  | "finalizado";
 
 export interface StatusInput {
   contract_signed: boolean;
-  whatsapp_group: boolean;
-  onboarding_sent: boolean;
+  paid: boolean;
+  contract_verified_at: string | null;
+  onboarding_released_at: string | null;
+  onboarding_completed_at: string | null;
 }
 
-/** Novo: nada marcado. Aguardando assinatura: alguma etapa feita mas contrato não assinado.
- * Em onboarding: contrato assinado, faltam etapas. Finalizado: tudo marcado. */
+/** Mesma regra da coluna status_contrato da view public.clientes. */
 export function clientStatus(c: StatusInput): ClientStatus {
-  if (c.contract_signed && c.whatsapp_group && c.onboarding_sent) return "finalizado";
-  if (c.contract_signed) return "em_onboarding";
-  if (c.whatsapp_group || c.onboarding_sent) return "aguardando_assinatura";
-  return "novo";
+  if (c.onboarding_completed_at) return "finalizado";
+  if (c.onboarding_released_at) return "em_onboarding";
+  if (!c.contract_signed) return "aguardando_assinatura";
+  if (!c.paid) return "aguardando_pagamento";
+  if (!c.contract_verified_at) return "aguardando_verificacao";
+  return "pronto_para_liberar";
 }
 
 export const STATUS_LABEL: Record<ClientStatus, string> = {
-  novo: "Novo",
   aguardando_assinatura: "Aguardando assinatura",
+  aguardando_pagamento: "Aguardando pagamento",
+  aguardando_verificacao: "Verificar contrato",
+  pronto_para_liberar: "Pronto para onboarding",
   em_onboarding: "Em onboarding",
-  finalizado: "Finalizado",
+  finalizado: "Onboarding concluído",
+};
+
+/** Mapeia o status do contrato nos tokens visuais de src/lib/status.ts. */
+export const CLIENT_STATUS_TOKEN: Record<ClientStatus, string> = {
+  aguardando_assinatura: "pendente",
+  aguardando_pagamento: "em_risco",
+  aguardando_verificacao: "aguardando_cliente",
+  pronto_para_liberar: "no_prazo",
+  em_onboarding: "aguardando_cliente",
+  finalizado: "concluido",
 };
 
 export function formatDuration(ms: number): string {

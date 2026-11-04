@@ -3,22 +3,24 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useClients, useSellers, type ClientRow } from "@/lib/session";
-import { clientStatus, formatBRL, formatDuration, STATUS_LABEL, type ClientStatus, canReleaseOnboarding } from "@/lib/crm";
+import { useClients, useMe, useProdutos, useSellers, type ClientRow } from "@/lib/session";
+import { clientStatus, formatBRL, formatDuration, STATUS_LABEL, CLIENT_STATUS_TOKEN, canReleaseOnboarding } from "@/lib/crm";
+import { useServerFn } from "@tanstack/react-start";
+import { confirmContractManually } from "@/lib/contract-verification.functions";
+import { PageHeader, StatusBadge } from "@/components/app/ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PRODUCTS } from "@/lib/crm";
 import { notifyClientFinalized } from "@/lib/finalized-webhook.functions";
 
 export const Route = createFileRoute("/_authenticated/clientes/")({
   head: () => ({ meta: [
-    { title: "Clientes — Icom" },
+    { title: "Clientes — ICOM" },
     { name: "description", content: "Clientes, pagamentos e liberação para onboarding da Icom." },
-    { property: "og:title", content: "Clientes — Icom" },
+    { property: "og:title", content: "Clientes — ICOM" },
     { property: "og:description", content: "Clientes, pagamentos e liberação para onboarding da Icom." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
@@ -26,12 +28,6 @@ export const Route = createFileRoute("/_authenticated/clientes/")({
   component: ClientsPage,
 });
 
-const statusTone: Record<ClientStatus, string> = {
-  novo: "bg-secondary text-secondary-foreground",
-  aguardando_assinatura: "bg-warning/25 text-warning-foreground",
-  em_onboarding: "bg-info/15 text-info",
-  finalizado: "bg-success/15 text-success",
-};
 
 const COLUMNS = [
   { key: "products", label: "Produtos" }, { key: "value", label: "Valor" },
@@ -53,6 +49,9 @@ function ClientsPage() {
   const { data: clients = [], isLoading } = useClients();
   const { data: sellers = [] } = useSellers();
   const qc = useQueryClient();
+  const { data: me } = useMe();
+  const { data: produtos = [] } = useProdutos();
+  const confirmContract = useServerFn(confirmContractManually);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [now, setNow] = useState(Date.now());
@@ -97,21 +96,35 @@ function ClientsPage() {
       .eq("id", c.id).eq("paid", true).eq("contract_signed", true).not("contract_verified_at", "is", null)
       .is("onboarding_released_at", null).select("id");
     if (error || !data?.length) toast.error("Não foi possível liberar. Confira o pagamento e a assinatura verificada.");
-    else toast.success("Cliente liberado para onboarding.");
+    else {
+      const { count } = await supabase.from("onboardings").select("id", { count: "exact", head: true }).eq("cliente_id", c.id);
+      toast.success(count
+        ? `Cliente liberado: ${count} onboarding${count === 1 ? "" : "s"} iniciado${count === 1 ? "" : "s"}.`
+        : "Cliente liberado. Nenhum produto contratado tem modelo de onboarding publicado.");
+    }
+    await Promise.all([qc.invalidateQueries({ queryKey: ["clients"] }), qc.invalidateQueries({ queryKey: ["onboardings"] })]);
+    setSaving(null);
+  }
+
+  async function confirm(c: ClientRow) {
+    if (!window.confirm(`Confirmar manualmente que o contrato de ${c.clinic_name} está assinado?`)) return;
+    setSaving(c.id);
+    try {
+      await confirmContract({ data: { clientId: c.id } });
+      toast.success("Contrato confirmado.");
+      if (c.paid) {
+        try { const r = await notifyClientFinalized({ data: { clientId: c.id } }); if (r.sent) toast.success("Ficha do cliente enviada ao n8n."); }
+        catch { toast.error("Falha ao enviar a ficha ao n8n."); }
+      }
+    } catch (err) { toast.error((err as Error).message); }
     await qc.invalidateQueries({ queryKey: ["clients"] });
     setSaving(null);
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Clientes</h1>
-        </div>
-        <Button asChild>
-          <Link to="/clientes/novo">Novo cliente</Link>
-        </Button>
-      </div>
+      <PageHeader title="Contratos" description="Etapa 1: assinatura e pagamento. Clientes liberados seguem para o onboarding de cada produto."
+        actions={<Button variant="dark" asChild><Link to="/clientes/novo">Novo contrato</Link></Button>} />
       <div className="flex flex-wrap gap-3">
         <Input placeholder="Buscar clínica ou vendedor..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs bg-card" />
         <Select value={status} onValueChange={setStatus}>
@@ -129,7 +142,7 @@ function ClientsPage() {
         </Select>
         <Select value={product} onValueChange={setProduct}>
           <SelectTrigger className="w-44 bg-card"><SelectValue /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Todos produtos</SelectItem>{PRODUCTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+          <SelectContent><SelectItem value="all">Todos produtos</SelectItem>{produtos.map((p) => <SelectItem key={p.id} value={p.nome}>{p.nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={paidF} onValueChange={setPaidF}>
           <SelectTrigger className="w-36 bg-card"><SelectValue /></SelectTrigger>
@@ -145,7 +158,7 @@ function ClientsPage() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="overflow-hidden rounded-xl bg-card shadow-card">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -180,7 +193,11 @@ function ClientsPage() {
                   {show("activation") && <TableCell className="text-sm">{c.activation_status || "—"}</TableCell>}
                   {show("system") && <TableCell className="text-sm capitalize">{c.billing_system || "—"}</TableCell>}
                   {show("contract") && (<TableCell className="text-center">
-                    <Checkbox checked={c.contract_signed && Boolean(c.contract_verified_at)} disabled aria-label={`Contrato assinado verificado — ${c.clinic_name}`} />
+                    {c.contract_verified_at || !me?.isAdmin ? (
+                      <Checkbox checked={c.contract_signed && Boolean(c.contract_verified_at)} disabled aria-label={`Contrato assinado verificado — ${c.clinic_name}`} />
+                    ) : (
+                      <Button size="sm" variant="outline" disabled={saving === c.id} onClick={() => confirm(c)} title="Confirmar assinatura manualmente (admin)">Confirmar</Button>
+                    )}
                   </TableCell>)}
                   {show("paid") && (<TableCell className="text-center">
                     <Checkbox checked={c.paid} disabled={saving === c.id || Boolean(c.onboarding_released_at)} onCheckedChange={(v) => toggle(c, v === true)} aria-label={`Pago — ${c.clinic_name}`} />
@@ -189,18 +206,22 @@ function ClientsPage() {
                     {formatDuration(end - new Date(c.started_at).getTime())}
                   </TableCell>)}
                   {show("status") && (<TableCell>
-                    <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusTone[st]}`}>{STATUS_LABEL[st]}</span>
+                    <StatusBadge status={CLIENT_STATUS_TOKEN[st]} label={STATUS_LABEL[st]} />
                   </TableCell>)}
                   {show("action") && (<TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                       <Button size="sm" variant="outline" asChild>
                         <Link to="/clientes/$id" params={{ id: c.id }}>Editar</Link>
                       </Button>
-                      <span title={c.onboarding_released_at ? "Cliente já liberado" : !c.contract_verified_at ? "Aguardando integração de verificação da assinatura" : !c.paid ? "Aguardando pagamento" : "Liberar cliente"}>
-                        <Button size="sm" disabled={!canReleaseOnboarding(c) || saving === c.id} onClick={() => release(c)}>
-                          {c.onboarding_released_at ? "Liberado para Onboarding" : saving === c.id ? "Salvando…" : "Liberar para Onboarding"}
-                        </Button>
-                      </span>
+                      {c.onboarding_released_at ? (
+                        <Button size="sm" variant="secondary" asChild><Link to="/painel">Ver onboarding</Link></Button>
+                      ) : (
+                        <span title={!c.contract_verified_at ? "Aguardando verificação da assinatura" : !c.paid ? "Aguardando pagamento" : "Iniciar o onboarding dos produtos contratados"}>
+                          <Button size="sm" disabled={!canReleaseOnboarding(c) || saving === c.id} onClick={() => release(c)}>
+                            {saving === c.id ? "Salvando…" : "Liberar para Onboarding"}
+                          </Button>
+                        </span>
+                      )}
                     </div>
                   </TableCell>)}
                 </TableRow>

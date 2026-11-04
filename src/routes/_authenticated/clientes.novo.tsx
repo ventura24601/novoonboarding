@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, useSellers } from "@/lib/session";
-import { CLIENT_TYPES, PRODUCTS } from "@/lib/crm";
+import { CLIENT_TYPES } from "@/lib/crm";
+import { useProdutos } from "@/lib/session";
 import { clientBaseSchema } from "@/lib/client-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,9 +16,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export const Route = createFileRoute("/_authenticated/clientes/novo")({
   head: () => ({ meta: [
-    { title: "Novo cliente — Icom" },
+    { title: "Novo contrato — ICOM" },
     { name: "description", content: "Cadastro de clínicas, produtos contratados e diagnóstico comercial da Icom." },
-    { property: "og:title", content: "Novo cliente — Icom" },
+    { property: "og:title", content: "Novo contrato — ICOM" },
     { property: "og:description", content: "Cadastro de clínicas, produtos contratados e diagnóstico comercial da Icom." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
@@ -36,6 +37,8 @@ function Field({ id, label, children }: { id: string; label: string; children: R
 function NewClient() {
   const { data: me } = useMe();
   const { data: sellers = [] } = useSellers();
+  const { data: produtos = [] } = useProdutos();
+  const produtoNomes = produtos.filter((p) => p.ativo).map((p) => p.nome);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -70,11 +73,11 @@ function NewClient() {
   return (
     <form onSubmit={submit} className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Novo cliente</h1>
+        <h1 className="text-2xl font-semibold">Novo contrato</h1>
         <p className="text-muted-foreground">Preencha os dados da venda para iniciar o onboarding.</p>
       </div>
 
-      <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+      <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Dados da clínica</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <Field id="clinic" label="Clínica *"><Input id="clinic" value={f.clinic_name} onChange={set("clinic_name")} /></Field>
@@ -100,10 +103,10 @@ function NewClient() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+      <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Produto contratado *</h2>
         <div className="flex flex-wrap gap-3">
-          {PRODUCTS.map((p) => {
+          {produtoNomes.map((p) => {
             const on = f.products.includes(p);
             return (
               <label key={p} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm transition ${on ? "border-primary bg-secondary" : "bg-card"}`}>
@@ -115,7 +118,7 @@ function NewClient() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+      <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Diagnóstico</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {([
@@ -139,7 +142,7 @@ function NewClient() {
         <Field id="pain" label="Dor"><Textarea id="pain" value={f.pain} onChange={set("pain")} /></Field>
       </section>
 
-      <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+      <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Condição comercial</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <Field id="cond" label="Condição diferenciada"><Input id="cond" value={f.special_condition} onChange={set("special_condition")} /></Field>
@@ -148,7 +151,7 @@ function NewClient() {
         <Field id="obs" label="Observação"><Textarea id="obs" value={f.notes} onChange={set("notes")} /></Field>
       </section>
 
-      <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+      <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <Field id="general_notes" label="Observação geral"><Textarea id="general_notes" value={f.general_notes} onChange={set("general_notes")} /></Field>
       </section>
 

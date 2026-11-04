@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/comissoes")({
-  head: () => ({ meta: [{ title: "Comissões — Icom" }] }),
+  head: () => ({ meta: [{ title: "Comissões — ICOM" }] }),
   component: Commissions,
 });
 
@@ -43,17 +43,17 @@ function Commissions() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-semibold">Comissões</h1>
+        <h1 className="text-2xl font-semibold">Comissões</h1>
         <p className="text-muted-foreground">Vendas por vendedor no período.</p>
       </div>
-      <div className="flex flex-wrap items-end gap-4 rounded-xl bg-card p-4 shadow-card">
+      <div className="flex flex-wrap items-end gap-4 rounded-lg border bg-card p-4 shadow-card">
         <div className="space-y-2"><Label htmlFor="m">Mês</Label><Input id="m" type="month" value={month} onChange={(e) => setMonth(e.target.value)} /></div>
         <div className="space-y-2"><Label htmlFor="r">Comissão (%)</Label><Input id="r" className="w-28" value={rate} onChange={(e) => setRate(e.target.value)} /></div>
         <label className="flex items-center gap-2 pb-2 text-sm">
           <Checkbox checked={onlySigned} onCheckedChange={(v) => setOnlySigned(v === true)} /> Somente contratos assinados
         </label>
       </div>
-      <div className="overflow-hidden rounded-xl bg-card shadow-card">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>

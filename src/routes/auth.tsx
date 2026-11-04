@@ -10,10 +10,10 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Entrar — Icom Vendas & CS" },
-      { name: "description", content: "Acesso da equipe comercial e de CS da Icom." },
-      { property: "og:title", content: "Entrar — Icom Vendas & CS" },
-      { property: "og:description", content: "Acesso da equipe comercial e de CS da Icom." },
+      { title: "Entrar — Central de Onboarding ICOM" },
+      { name: "description", content: "Acesso da equipe ICOM." },
+      { property: "og:title", content: "Entrar — Central de Onboarding ICOM" },
+      { property: "og:description", content: "Acesso da equipe ICOM." },
     ],
   }),
   component: AuthPage,
@@ -29,7 +29,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard", replace: true });
+      if (data.session) navigate({ to: "/painel", replace: true });
     });
     supabase.rpc("has_any_users").then(({ data }) => setHasUsers(Boolean(data)));
   }, [navigate]);
@@ -55,7 +55,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw new Error("E-mail ou senha inválidos.");
       }
-      navigate({ to: "/dashboard", replace: true });
+      navigate({ to: "/painel", replace: true });
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -66,42 +66,40 @@ function AuthPage() {
   const setup = hasUsers === false;
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-hero p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <span className="font-display text-xl font-semibold">Icom</span>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-sidebar px-4 py-10">
+      <div className="mb-6 flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-base font-black text-white">IC</span>
+        <span className="leading-tight">
+          <span className="block text-lg font-bold tracking-wide text-white">ICOM</span>
+          <span className="block text-xs text-sidebar-foreground/70">Central de Onboarding</span>
+        </span>
+      </div>
+      <form onSubmit={submit} className="w-full max-w-sm space-y-5 rounded-lg border border-white/10 bg-card p-7 shadow-2xl">
         <div>
-          <h1 className="text-4xl font-semibold leading-tight">Da venda ao onboarding,<br />em um só lugar.</h1>
-          <p className="mt-4 max-w-md opacity-80">Contratos, grupos de WhatsApp, onboarding e comissões da equipe.</p>
+          <h2 className="text-xl font-semibold">{setup ? "Criar administrador" : "Entrar"}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {setup ? "Primeiro acesso: crie a conta que vai gerenciar a equipe." : "Contratos e onboarding de clientes, do pagamento à ativação."}
+          </p>
         </div>
-        <span className="text-sm opacity-60">Uso interno</span>
-      </div>
-      <div className="flex items-center justify-center p-6">
-        <form onSubmit={submit} className="w-full max-w-sm space-y-5">
-          <div>
-            <h2 className="text-2xl font-semibold">{setup ? "Criar administrador" : "Entrar"}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {setup ? "Primeiro acesso: crie a conta que vai gerenciar a equipe." : "Use o acesso criado pelo seu administrador."}
-            </p>
-          </div>
-          {setup && (
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-          )}
+        {setup && (
           <div className="space-y-2">
-            <Label htmlFor="email">E-mail</Label>
-            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Label htmlFor="name">Nome</Label>
+            <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <Button type="submit" className="w-full" disabled={loading || hasUsers === null}>
-            {loading ? "Aguarde..." : setup ? "Criar conta" : "Entrar"}
-          </Button>
-        </form>
-      </div>
+        )}
+        <div className="space-y-2">
+          <Label htmlFor="email">E-mail</Label>
+          <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Senha</Label>
+          <Input id="password" type="password" autoComplete={setup ? "new-password" : "current-password"} required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        <Button type="submit" variant="dark" className="w-full" disabled={loading || hasUsers === null}>
+          {loading ? "Aguarde..." : setup ? "Criar conta" : "Entrar"}
+        </Button>
+      </form>
+      <p className="mt-6 text-xs text-sidebar-foreground/50">Uso interno · ICOM</p>
     </div>
   );
 }

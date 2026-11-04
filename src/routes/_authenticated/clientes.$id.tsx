@@ -4,8 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSellers } from "@/lib/session";
-import { CLIENT_TYPES, PRODUCTS, STATUS_LABEL, clientStatus, formatBRL } from "@/lib/crm";
+import { useSellers, useProdutos, useOnboardings } from "@/lib/session";
+import { ColorBadge, StatusBadge } from "@/components/app/ui";
+import { CLIENT_TYPES, STATUS_LABEL, CLIENT_STATUS_TOKEN, clientStatus, formatBRL } from "@/lib/crm";
 import {
   ACTIVATION_STATUSES, BILLING_SYSTEMS, PAYMENT_METHODS, clientEditSchema, clientFormFromRow,
   clientUpdatePayload, missingClientFields, type ClientForm,
@@ -19,9 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export const Route = createFileRoute("/_authenticated/clientes/$id")({
   head: () => ({ meta: [
-    { title: "Ficha do cliente — Icom" },
+    { title: "Ficha do cliente — ICOM" },
     { name: "description", content: "Dados de ativação, financeiro e pagamento do cliente Icom." },
-    { property: "og:title", content: "Ficha do cliente — Icom" },
+    { property: "og:title", content: "Ficha do cliente — ICOM" },
     { property: "og:description", content: "Dados de ativação, financeiro e pagamento do cliente Icom." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
@@ -37,7 +38,7 @@ function F({ id: fid, label, children }: { id: string; label: string; children: 
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 rounded-xl bg-card p-6 shadow-card">
+    <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
       <h2 className="font-semibold">{title}</h2>
       {children}
     </section>
@@ -69,6 +70,9 @@ function ClientSheet() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { data: sellers = [] } = useSellers();
+  const { data: produtos = [] } = useProdutos();
+  const { data: onbs = [] } = useOnboardings();
+  const produtoNomes = produtos.filter((p) => p.ativo).map((p) => p.nome);
   const { data: c, isLoading } = useQuery({
     queryKey: ["client", id],
     queryFn: async () => {
@@ -135,7 +139,7 @@ function ClientSheet() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link to="/clientes" className="text-sm text-muted-foreground hover:underline">← Clientes</Link>
-          <h1 className="text-3xl font-semibold">{c.clinic_name}</h1>
+          <h1 className="text-2xl font-semibold">{c.clinic_name}</h1>
           <p className="text-muted-foreground">{c.products.join(", ")} · {formatBRL(Number(c.value))} · Vendedor: {sellerName || "—"}</p>
         </div>
         {editing ? (
@@ -178,7 +182,7 @@ function ClientSheet() {
 
           <Section title="Produto contratado *">
             <div className="flex flex-wrap gap-3">
-              {PRODUCTS.map((p) => {
+              {produtoNomes.map((p) => {
                 const on = f.products.includes(p);
                 return (
                   <label key={p} className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2 text-sm transition ${on ? "border-primary bg-secondary" : "bg-card"}`}>
@@ -261,11 +265,36 @@ function ClientSheet() {
         <>
           <Section title="Situação">
             <div className="space-y-0">
-              <Row label="Status" value={<span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium">{STATUS_LABEL[st]}</span>} />
-              <Row label="Contrato assinado" value={c.contract_verified_at ? "Sim (verificado)" : c.contract_signed ? "Marcado, sem verificação" : "Não"} />
+              <Row label="Status" value={<StatusBadge status={CLIENT_STATUS_TOKEN[st]} label={STATUS_LABEL[st]} />} />
+              <Row label="Contrato assinado" value={c.contract_verified_at ? `Sim (verificado${c.contract_verification_source === "manual" ? " manualmente" : ""})` : c.contract_signed ? "Marcado, sem verificação" : "Não"} />
               <Row label="Pago" value={c.paid ? "Sim" : "Não"} />
               <Row label="Liberado para onboarding" value={c.onboarding_released_at ? "Sim" : "Não"} />
             </div>
+          </Section>
+
+          <Section title="Onboarding">
+            {onbs.filter((o) => o.cliente_id === c.id).length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {c.onboarding_released_at
+                  ? "Nenhum dos produtos contratados tem modelo de onboarding publicado."
+                  : "O onboarding começa quando o cliente for liberado (pago e contrato verificado)."}
+              </p>
+            ) : (
+              <div className="divide-y">
+                {onbs.filter((o) => o.cliente_id === c.id).map((o) => (
+                  <div key={o.id} className="flex items-center justify-between gap-4 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <ColorBadge color={o.produto_cor ?? "#7C3AED"}>{o.produto_nome}</ColorBadge>
+                      <span className="text-sm">
+                        {o.etapa_atual_nome ? <>Etapa atual: <b className="text-gold">{o.etapa_atual_nome}</b></> : "Todas as etapas concluídas"}
+                        <span className="ml-2 text-xs text-muted-foreground">{o.etapas_feitas}/{o.etapas_total}</span>
+                      </span>
+                    </div>
+                    <StatusBadge status={o.situacao} />
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
 
           <Section title="Dados da clínica">

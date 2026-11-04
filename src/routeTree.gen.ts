@@ -12,8 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedMinhasEtapasRouteImport } from './routes/_authenticated/minhas-etapas'
+import { Route as AuthenticatedModelosRouteImport } from './routes/_authenticated/modelos'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
@@ -34,14 +39,41 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCarteiraRoute = AuthenticatedCarteiraRouteImport.update({
+  id: '/carteira',
+  path: '/carteira',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedComissoesRoute = AuthenticatedComissoesRouteImport.update({
   id: '/comissoes',
   path: '/comissoes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMinhasEtapasRoute =
+  AuthenticatedMinhasEtapasRouteImport.update({
+    id: '/minhas-etapas',
+    path: '/minhas-etapas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedModelosRoute = AuthenticatedModelosRouteImport.update({
+  id: '/modelos',
+  path: '/modelos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
@@ -75,8 +107,13 @@ const ApiPublicContratosRoute = ApiPublicContratosRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/carteira': typeof AuthenticatedCarteiraRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
+  '/modelos': typeof AuthenticatedModelosRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
@@ -86,8 +123,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/carteira': typeof AuthenticatedCarteiraRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
+  '/modelos': typeof AuthenticatedModelosRoute
+  '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
@@ -99,8 +141,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
+  '/_authenticated/modelos': typeof AuthenticatedModelosRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/clientes/novo': typeof AuthenticatedClientesNovoRoute
@@ -112,8 +159,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/carteira'
     | '/comissoes'
+    | '/configuracoes'
     | '/dashboard'
+    | '/minhas-etapas'
+    | '/modelos'
+    | '/painel'
     | '/usuarios'
     | '/clientes/$id'
     | '/clientes/novo'
@@ -123,8 +175,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/carteira'
     | '/comissoes'
+    | '/configuracoes'
     | '/dashboard'
+    | '/minhas-etapas'
+    | '/modelos'
+    | '/painel'
     | '/usuarios'
     | '/clientes/$id'
     | '/clientes/novo'
@@ -135,8 +192,13 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/carteira'
     | '/_authenticated/comissoes'
+    | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/minhas-etapas'
+    | '/_authenticated/modelos'
+    | '/_authenticated/painel'
     | '/_authenticated/usuarios'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/clientes/novo'
@@ -174,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/carteira': {
+      id: '/_authenticated/carteira'
+      path: '/carteira'
+      fullPath: '/carteira'
+      preLoaderRoute: typeof AuthenticatedCarteiraRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/comissoes': {
       id: '/_authenticated/comissoes'
       path: '/comissoes'
@@ -181,11 +250,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComissoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/minhas-etapas': {
+      id: '/_authenticated/minhas-etapas'
+      path: '/minhas-etapas'
+      fullPath: '/minhas-etapas'
+      preLoaderRoute: typeof AuthenticatedMinhasEtapasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/modelos': {
+      id: '/_authenticated/modelos'
+      path: '/modelos'
+      fullPath: '/modelos'
+      preLoaderRoute: typeof AuthenticatedModelosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/usuarios': {
@@ -227,8 +324,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedMinhasEtapasRoute: typeof AuthenticatedMinhasEtapasRoute
+  AuthenticatedModelosRoute: typeof AuthenticatedModelosRoute
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedClientesNovoRoute: typeof AuthenticatedClientesNovoRoute
@@ -236,8 +338,13 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedMinhasEtapasRoute: AuthenticatedMinhasEtapasRoute,
+  AuthenticatedModelosRoute: AuthenticatedModelosRoute,
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedClientesNovoRoute: AuthenticatedClientesNovoRoute,
