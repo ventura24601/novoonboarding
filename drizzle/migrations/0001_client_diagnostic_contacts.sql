@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN whatsapp text, ADD COLUMN general_notes text, ADD COLUMN has_crc boolean, ADD COLUMN has_marketing_experience boolean, ADD COLUMN has_facebook boolean;

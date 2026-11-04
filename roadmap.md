@@ -1,0 +1,4 @@
+- [x] Replace client table WhatsApp group and onboarding checkboxes with payment and gated onboarding release.
+- [x] Enforce payment and verified-signature prerequisites in storage and tests.
+- [x] Client sheet: read view + Editar button covering every field, with a missing-data list.
+- [ ] Connect contract verification: blocked on signing-provider identification and verification credentials/documentation; existing public webhook is diagnostic-only.

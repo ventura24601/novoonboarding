@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793182705605,
+      "tag": "0000_sales_cs_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793296022077,
+      "tag": "0001_client_diagnostic_contacts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793296274397,
+      "tag": "0002_client_payment_onboarding_release",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793297729667,
+      "tag": "0003_client_finalized_webhook",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793791889456,
+      "tag": "0004_client_financial_details",
+      "breakpoints": true
+    }
+  ]
+}
