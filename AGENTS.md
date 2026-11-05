@@ -18,3 +18,4 @@
 - Client diagnostic answers use nullable booleans and a shared validation schema; unanswered is distinct from No and general notes are separate from commercial notes.
 - Onboarding release requires payment and server-managed signature verification; a database trigger enforces prerequisites and timestamps independently of the UI.
 - Every client field is declared once in `src/lib/client-form.ts` (validation schema, form state, save payload, missing-field list) and reused by the new-client form and the client sheet — add fields there, not per screen.
+- Onboarding models are versioned: only `rascunho` models are editable (DB triggers block edits to published/archived models and their phases/steps/checklist); change a published model via `duplicar_modelo` → edit → `publicar_modelo`, which archives the previous version — running onboardings keep the copy they started with.

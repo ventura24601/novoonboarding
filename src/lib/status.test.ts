@@ -12,3 +12,15 @@ describe("situação de SLA da etapa", () => {
   });
   it("token desconhecido cai em pendente", () => expect(statusToken("xyz").label).toBe("Pendente"));
 });
+
+import { ordemDasEtapas } from "./modelos";
+describe("ordemDasEtapas", () => {
+  it("atribui a fase do cabeçalho acima e mantém a ordem", () => {
+    expect(ordemDasEtapas([
+      { tipo: "etapa", id: "x" }, { tipo: "fase", id: "F1" }, { tipo: "etapa", id: "a" },
+      { tipo: "fase", id: "F2" }, { tipo: "etapa", id: "b" }, { tipo: "etapa", id: "c" },
+    ])).toEqual([
+      { id: "x", fase_id: "F1" }, { id: "a", fase_id: "F1" }, { id: "b", fase_id: "F2" }, { id: "c", fase_id: "F2" },
+    ]);
+  });
+});

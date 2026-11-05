@@ -811,6 +811,10 @@ export type Database = {
       }
     }
     Functions: {
+      criar_modelo: { Args: { _produto_id: string; _nome: string }; Returns: string }
+      duplicar_modelo: { Args: { _modelo_id: string }; Returns: string }
+      ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined }
+      publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined }
       dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number }
       gere_produto: { Args: { _produto_id: string }; Returns: boolean }
       has_any_users: { Args: never; Returns: boolean }
