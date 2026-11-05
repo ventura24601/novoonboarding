@@ -1,4 +1,5 @@
 - [x] Replace client table WhatsApp group and onboarding checkboxes with payment and gated onboarding release.
 - [x] Enforce payment and verified-signature prerequisites in storage and tests.
 - [x] Client sheet: read view + Editar button covering every field, with a missing-data list.
-- [ ] Connect contract verification: blocked on signing-provider identification and verification credentials/documentation; existing public webhook is diagnostic-only.
+- [x] Contract verification via DocuSign Connect (HMAC-verified webhook, auto-link by client id/code/CPF-CNPJ/e-mail, manual linking screen).
+- [ ] Configure DocuSign Connect in the DocuSign account and set DOCUSIGN_CONNECT_HMAC_KEY on Netlify.

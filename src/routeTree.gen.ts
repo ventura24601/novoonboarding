@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAssinaturasRouteImport } from './routes/_authenticated/assinaturas'
 import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticated/carteira'
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -25,6 +26,7 @@ import { Route as AuthenticatedClientesNovoRouteImport } from './routes/_authent
 import { Route as AuthenticatedModelosIndexRouteImport } from './routes/_authenticated/modelos.index'
 import { Route as AuthenticatedModelosIdRouteImport } from './routes/_authenticated/modelos.$id'
 import { Route as ApiPublicContratosRouteImport } from './routes/api/public/contratos'
+import { Route as ApiPublicDocusignRouteImport } from './routes/api/public/docusign'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -40,6 +42,12 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAssinaturasRoute =
+  AuthenticatedAssinaturasRouteImport.update({
+    id: '/assinaturas',
+    path: '/assinaturas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCarteiraRoute = AuthenticatedCarteiraRouteImport.update({
   id: '/carteira',
   path: '/carteira',
@@ -110,10 +118,16 @@ const ApiPublicContratosRoute = ApiPublicContratosRouteImport.update({
   path: '/api/public/contratos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDocusignRoute = ApiPublicDocusignRouteImport.update({
+  id: '/api/public/docusign',
+  path: '/api/public/docusign',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -125,12 +139,14 @@ export interface FileRoutesByFullPath {
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
+  '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
   '/modelos/': typeof AuthenticatedModelosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/carteira': typeof AuthenticatedCarteiraRoute
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -142,6 +158,7 @@ export interface FileRoutesByTo {
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
+  '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
   '/modelos': typeof AuthenticatedModelosIndexRoute
 }
@@ -150,6 +167,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/assinaturas': typeof AuthenticatedAssinaturasRoute
   '/_authenticated/carteira': typeof AuthenticatedCarteiraRoute
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -161,6 +179,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/_authenticated/modelos/$id': typeof AuthenticatedModelosIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
+  '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
   '/_authenticated/modelos/': typeof AuthenticatedModelosIndexRoute
 }
@@ -169,6 +188,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/assinaturas'
     | '/carteira'
     | '/comissoes'
     | '/configuracoes'
@@ -180,12 +200,14 @@ export interface FileRouteTypes {
     | '/clientes/novo'
     | '/modelos/$id'
     | '/api/public/contratos'
+    | '/api/public/docusign'
     | '/clientes/'
     | '/modelos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/assinaturas'
     | '/carteira'
     | '/comissoes'
     | '/configuracoes'
@@ -197,6 +219,7 @@ export interface FileRouteTypes {
     | '/clientes/novo'
     | '/modelos/$id'
     | '/api/public/contratos'
+    | '/api/public/docusign'
     | '/clientes'
     | '/modelos'
   id:
@@ -204,6 +227,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/assinaturas'
     | '/_authenticated/carteira'
     | '/_authenticated/comissoes'
     | '/_authenticated/configuracoes'
@@ -215,6 +239,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes/novo'
     | '/_authenticated/modelos/$id'
     | '/api/public/contratos'
+    | '/api/public/docusign'
     | '/_authenticated/clientes/'
     | '/_authenticated/modelos/'
   fileRoutesById: FileRoutesById
@@ -224,6 +249,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicContratosRoute: typeof ApiPublicContratosRoute
+  ApiPublicDocusignRoute: typeof ApiPublicDocusignRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -248,6 +274,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/assinaturas': {
+      id: '/_authenticated/assinaturas'
+      path: '/assinaturas'
+      fullPath: '/assinaturas'
+      preLoaderRoute: typeof AuthenticatedAssinaturasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/carteira': {
       id: '/_authenticated/carteira'
@@ -340,10 +373,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicContratosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/docusign': {
+      id: '/api/public/docusign'
+      path: '/api/public/docusign'
+      fullPath: '/api/public/docusign'
+      preLoaderRoute: typeof ApiPublicDocusignRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAssinaturasRoute: typeof AuthenticatedAssinaturasRoute
   AuthenticatedCarteiraRoute: typeof AuthenticatedCarteiraRoute
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -359,6 +400,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAssinaturasRoute: AuthenticatedAssinaturasRoute,
   AuthenticatedCarteiraRoute: AuthenticatedCarteiraRoute,
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
@@ -381,6 +423,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicContratosRoute: ApiPublicContratosRoute,
+  ApiPublicDocusignRoute: ApiPublicDocusignRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

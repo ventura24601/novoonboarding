@@ -179,6 +179,72 @@ export type Database = {
         }
         Relationships: []
       }
+      docusign_envelopes: {
+        Row: {
+          assunto: string | null
+          campos: Json
+          cliente_id: string | null
+          concluido_em: string | null
+          documentos: string[]
+          envelope_id: string
+          enviado_em: string | null
+          evento_em: string | null
+          id: string
+          ignorado: boolean
+          recebido_em: string
+          remetente_email: string | null
+          signatarios: Json
+          status: string
+          updated_at: string
+          vinculado_em: string | null
+          vinculado_por: string | null
+          vinculo: string | null
+          vinculo_motivo: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          campos?: Json
+          cliente_id?: string | null
+          concluido_em?: string | null
+          documentos?: string[]
+          envelope_id: string
+          enviado_em?: string | null
+          evento_em?: string | null
+          id?: string
+          ignorado?: boolean
+          recebido_em?: string
+          remetente_email?: string | null
+          signatarios?: Json
+          status: string
+          updated_at?: string
+          vinculado_em?: string | null
+          vinculado_por?: string | null
+          vinculo?: string | null
+          vinculo_motivo?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          campos?: Json
+          cliente_id?: string | null
+          concluido_em?: string | null
+          documentos?: string[]
+          envelope_id?: string
+          enviado_em?: string | null
+          evento_em?: string | null
+          id?: string
+          ignorado?: boolean
+          recebido_em?: string
+          remetente_email?: string | null
+          signatarios?: Json
+          status?: string
+          updated_at?: string
+          vinculado_em?: string | null
+          vinculado_por?: string | null
+          vinculo?: string | null
+          vinculo_motivo?: string | null
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           data: string
