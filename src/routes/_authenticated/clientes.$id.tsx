@@ -36,9 +36,9 @@ function F({ id: fid, label, children }: { id: string; label: string; children: 
   return <div className="space-y-2"><Label htmlFor={fid}>{label}</Label>{children}</div>;
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
+    <section id={id} className="scroll-mt-20 space-y-4 rounded-lg border bg-card p-6 shadow-card">
       <h2 className="font-semibold">{title}</h2>
       {children}
     </section>
@@ -272,7 +272,7 @@ function ClientSheet() {
             </div>
           </Section>
 
-          <Section title="Onboarding">
+          <Section title="Onboarding" id="onboarding">
             {onbs.filter((o) => o.cliente_id === c.id).length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {c.onboarding_released_at
@@ -282,7 +282,7 @@ function ClientSheet() {
             ) : (
               <div className="divide-y">
                 {onbs.filter((o) => o.cliente_id === c.id).map((o) => (
-                  <div key={o.id} className="flex items-center justify-between gap-4 py-2.5">
+                  <Link key={o.id} to="/onboardings/$id" params={{ id: o.id! }} className="-mx-2 flex items-center justify-between gap-4 rounded-md px-2 py-2.5 transition hover:bg-[#F8FAFC]">
                     <div className="flex items-center gap-3">
                       <ColorBadge color={o.produto_cor ?? "#7C3AED"}>{o.produto_nome}</ColorBadge>
                       <span className="text-sm">
@@ -291,7 +291,7 @@ function ClientSheet() {
                       </span>
                     </div>
                     <StatusBadge status={o.situacao} />
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

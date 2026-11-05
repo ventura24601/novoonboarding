@@ -540,6 +540,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          onboarding_etapa_id: string | null
           onboarding_id: string
           texto: string
           user_id: string | null
@@ -547,6 +548,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          onboarding_etapa_id?: string | null
           onboarding_id: string
           texto: string
           user_id?: string | null
@@ -554,6 +556,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          onboarding_etapa_id?: string | null
           onboarding_id?: string
           texto?: string
           user_id?: string | null

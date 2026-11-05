@@ -62,7 +62,7 @@ function Painel() {
     {
       id: "cliente", accessorKey: "cliente_nome", header: "Cliente",
       cell: ({ row }) => (
-        <Link to="/clientes/$id" params={{ id: row.original.cliente_id! }} className="font-semibold text-[#1F2937] hover:text-primary hover:underline">
+        <Link to="/onboardings/$id" params={{ id: row.original.id! }} className="font-semibold text-[#1F2937] hover:text-primary hover:underline">
           {row.original.cliente_nome}
         </Link>
       ),
@@ -168,7 +168,8 @@ function Painel() {
             </thead>
             <tbody>
               {table.getRowModel().rows.map((r) => (
-                <tr key={r.id} className="border-b last:border-0 hover:bg-[#FAFAFC]">
+                <tr key={r.id} className="cursor-pointer border-b last:border-0 hover:bg-[#FAFAFC]"
+                  onClick={(ev) => { if (!(ev.target as HTMLElement).closest("a,button")) navigate({ to: "/onboardings/$id", params: { id: r.original.id! } }); }}>
                   {r.getVisibleCells().map((c) => <td key={c.id} className="px-4 py-3 align-middle">{flexRender(c.column.columnDef.cell, c.getContext())}</td>)}
                 </tr>
               ))}

@@ -214,7 +214,7 @@ function ClientsPage() {
                         <Link to="/clientes/$id" params={{ id: c.id }}>Editar</Link>
                       </Button>
                       {c.onboarding_released_at ? (
-                        <Button size="sm" variant="secondary" asChild><Link to="/painel">Ver onboarding</Link></Button>
+                        <Button size="sm" variant="secondary" asChild><Link to="/clientes/$id" params={{ id: c.id }} hash="onboarding">Ver onboarding</Link></Button>
                       ) : (
                         <span title={!c.contract_verified_at ? "Aguardando verificação da assinatura" : !c.paid ? "Aguardando pagamento" : "Iniciar o onboarding dos produtos contratados"}>
                           <Button size="sm" disabled={!canReleaseOnboarding(c) || saving === c.id} onClick={() => release(c)}>

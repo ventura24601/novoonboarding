@@ -65,10 +65,10 @@ function Carteira() {
                       <div className="flex flex-wrap gap-1.5">
                         {dele.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
                         {dele.map((o) => (
-                          <span key={o.id} className="inline-flex items-center gap-1.5">
+                          <Link key={o.id} to="/onboardings/$id" params={{ id: o.id! }} className="inline-flex items-center gap-1.5 rounded hover:opacity-80" title="Abrir onboarding">
                             <ColorBadge color={o.produto_cor ?? "#7C3AED"}>{o.produto_nome}</ColorBadge>
                             <StatusBadge status={o.situacao} />
-                          </span>
+                          </Link>
                         ))}
                       </div>
                     </td>

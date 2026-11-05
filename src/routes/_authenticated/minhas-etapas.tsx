@@ -40,7 +40,8 @@ function MinhasEtapas() {
           {etapas.map((e) => {
             const o = onb(e.onboarding_id);
             return (
-              <div key={e.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
+              <Link key={e.id} to="/onboardings/$id" params={{ id: e.onboarding_id! }} search={{ etapa: e.id! }}
+                className="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-[#FAFAFC]">
                 <div className="min-w-0">
                   <div className="font-semibold text-gold">{e.nome}</div>
                   <div className="text-xs text-muted-foreground">{o?.cliente_nome} · {o?.produto_nome} · {e.fase_nome}</div>
@@ -49,7 +50,7 @@ function MinhasEtapas() {
                   <span className="tabular-nums text-muted-foreground">{e.prazo_em ? format(parseISO(e.prazo_em), "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>
                   <StatusBadge status={e.situacao} />
                 </div>
-              </div>
+              </Link>
             );
           })}
         </Card>

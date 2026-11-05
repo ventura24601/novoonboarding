@@ -25,6 +25,7 @@ import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedClientesNovoRouteImport } from './routes/_authenticated/clientes.novo'
 import { Route as AuthenticatedModelosIndexRouteImport } from './routes/_authenticated/modelos.index'
 import { Route as AuthenticatedModelosIdRouteImport } from './routes/_authenticated/modelos.$id'
+import { Route as AuthenticatedOnboardingsIdRouteImport } from './routes/_authenticated/onboardings.$id'
 import { Route as ApiPublicContratosRouteImport } from './routes/api/public/contratos'
 import { Route as ApiPublicDocusignRouteImport } from './routes/api/public/docusign'
 
@@ -113,6 +114,12 @@ const AuthenticatedModelosIdRoute = AuthenticatedModelosIdRouteImport.update({
   path: '/modelos/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnboardingsIdRoute =
+  AuthenticatedOnboardingsIdRouteImport.update({
+    id: '/onboardings/$id',
+    path: '/onboardings/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicContratosRoute = ApiPublicContratosRouteImport.update({
   id: '/api/public/contratos',
   path: '/api/public/contratos',
@@ -138,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
+  '/onboardings/$id': typeof AuthenticatedOnboardingsIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
   '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/clientes/': typeof AuthenticatedClientesIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesByTo {
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
+  '/onboardings/$id': typeof AuthenticatedOnboardingsIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
   '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/clientes': typeof AuthenticatedClientesIndexRoute
@@ -178,6 +187,7 @@ export interface FileRoutesById {
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/_authenticated/modelos/$id': typeof AuthenticatedModelosIdRoute
+  '/_authenticated/onboardings/$id': typeof AuthenticatedOnboardingsIdRoute
   '/api/public/contratos': typeof ApiPublicContratosRoute
   '/api/public/docusign': typeof ApiPublicDocusignRoute
   '/_authenticated/clientes/': typeof AuthenticatedClientesIndexRoute
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/clientes/$id'
     | '/clientes/novo'
     | '/modelos/$id'
+    | '/onboardings/$id'
     | '/api/public/contratos'
     | '/api/public/docusign'
     | '/clientes/'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/clientes/$id'
     | '/clientes/novo'
     | '/modelos/$id'
+    | '/onboardings/$id'
     | '/api/public/contratos'
     | '/api/public/docusign'
     | '/clientes'
@@ -238,6 +250,7 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes/$id'
     | '/_authenticated/clientes/novo'
     | '/_authenticated/modelos/$id'
+    | '/_authenticated/onboardings/$id'
     | '/api/public/contratos'
     | '/api/public/docusign'
     | '/_authenticated/clientes/'
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedModelosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboardings/$id': {
+      id: '/_authenticated/onboardings/$id'
+      path: '/onboardings/$id'
+      fullPath: '/onboardings/$id'
+      preLoaderRoute: typeof AuthenticatedOnboardingsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/contratos': {
       id: '/api/public/contratos'
       path: '/api/public/contratos'
@@ -395,6 +415,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedClientesNovoRoute: typeof AuthenticatedClientesNovoRoute
   AuthenticatedModelosIdRoute: typeof AuthenticatedModelosIdRoute
+  AuthenticatedOnboardingsIdRoute: typeof AuthenticatedOnboardingsIdRoute
   AuthenticatedClientesIndexRoute: typeof AuthenticatedClientesIndexRoute
   AuthenticatedModelosIndexRoute: typeof AuthenticatedModelosIndexRoute
 }
@@ -411,6 +432,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedClientesNovoRoute: AuthenticatedClientesNovoRoute,
   AuthenticatedModelosIdRoute: AuthenticatedModelosIdRoute,
+  AuthenticatedOnboardingsIdRoute: AuthenticatedOnboardingsIdRoute,
   AuthenticatedClientesIndexRoute: AuthenticatedClientesIndexRoute,
   AuthenticatedModelosIndexRoute: AuthenticatedModelosIndexRoute,
 }
