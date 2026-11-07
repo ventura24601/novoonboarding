@@ -106,8 +106,16 @@ describe("receberVendas", () => {
       return { id: v.chave.slice(0, 8), nova };
     },
   };
-  it("recusa sem token configurado ou com token errado", async () => {
-    expect((await receberVendas(req({}, "{}"), [], gravador)).status).toBe(503);
+  it("sem token configurado, aceita envio aberto", async () => {
+    const r = await receberVendas(
+      req({}, JSON.stringify({ nome: "Clínica Aberta" })),
+      [],
+      gravador,
+    );
+    expect(r.status).toBe(201);
+    gravadas.clear();
+  });
+  it("com token configurado, recusa token errado", async () => {
     expect(
       (
         await receberVendas(

@@ -608,15 +608,7 @@ function ComoConfigurar() {
           Método <b>POST</b> para{" "}
           <code className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">{url}</code>
         </li>
-        <li>
-          Cabeçalho{" "}
-          <code className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">
-            Authorization: Bearer &lt;token&gt;
-          </code>{" "}
-          (ou <code className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">X-Webhook-Token</code>)
-          com o token configurado no Netlify em{" "}
-          <code className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">VENDAS_WEBHOOK_TOKEN</code>.
-        </li>
+        <li>Não precisa de token: as vendas recebidas sempre entram como aguardando revisão.</li>
         <li>
           Corpo em JSON com os campos da venda (nome, cnpj, email, telefone, whatsapp,
           meio_pagamento, condicao_pagamento, vendedor_email...). Também aceita formulário ou linhas{" "}

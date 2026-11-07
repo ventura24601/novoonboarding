@@ -163,9 +163,8 @@ export async function receberVendas(
   tokens: string[],
   gravador: GravadorVendas,
 ): Promise<Response> {
-  if (!tokens.length)
-    return Response.json({ error: "Webhook de vendas não configurado." }, { status: 503 });
-  if (!tokenValido(request.headers, tokens))
+  // Sem VENDAS_WEBHOOK_TOKEN o envio é aberto (decisão do negócio): tudo entra como pendente de revisão.
+  if (tokens.length && !tokenValido(request.headers, tokens))
     return Response.json({ error: "Token inválido." }, { status: 401 });
   const texto = await lerTexto(request);
   if (texto === "grande") return Response.json({ error: "Corpo excede 64 KiB." }, { status: 413 });
