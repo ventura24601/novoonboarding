@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
+  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Inbox, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +17,14 @@ export const Route = createFileRoute("/_authenticated")({
   component: Layout,
 });
 
-type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean; badge?: "assinaturas" };
+type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean; badge?: "assinaturas" | "vendas" };
 
 const SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Etapa 1 · Contratos",
     items: [
       { to: "/dashboard", label: "Painel comercial", icon: LayoutDashboard },
+      { to: "/vendas", label: "Vendas recebidas", icon: Inbox, badge: "vendas" },
       { to: "/clientes", label: "Contratos", icon: FileSignature, exact: true },
       { to: "/clientes/novo", label: "Novo contrato", icon: FilePlus2 },
       { to: "/assinaturas", label: "Assinaturas", icon: PenLine, badge: "assinaturas" },
@@ -56,7 +57,7 @@ function SideLink({ item, contagem }: { item: NavItem; contagem?: number | undef
       <item.icon className="h-4 w-4 shrink-0 opacity-80" />
       <span className="truncate">{item.label}</span>
       {!!contagem && (
-        <span className="ml-auto rounded-full bg-[#D97706] px-1.5 text-[10px] font-bold leading-4 text-white" title="Assinaturas aguardando vínculo">{contagem}</span>
+        <span className="ml-auto rounded-full bg-[#D97706] px-1.5 text-[10px] font-bold leading-4 text-white" title={item.badge === "vendas" ? "Vendas aguardando revisão" : "Assinaturas aguardando vínculo"}>{contagem}</span>
       )}
     </Link>
   );
@@ -69,6 +70,15 @@ function Layout() {
   const navigate = useNavigate();
   const emAndamento = onbs.filter((o) => o.status === "em_andamento").length;
   const atrasados = onbs.filter((o) => o.situacao === "atrasado").length;
+  const { data: vendasPendentes = 0 } = useQuery({
+    queryKey: ["vendas-pendentes"],
+    enabled: !!me && (me.isAdmin || me.roles.includes("vendedor")),
+    queryFn: async () => {
+      const { count } = await supabase.from("vendas_recebidas").select("id", { count: "exact", head: true }).eq("status", "pendente");
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
   const { data: pendentes = 0 } = useQuery({
     queryKey: ["docusign-pendentes"],
     enabled: !!me && (me.isAdmin || me.isGestor),
@@ -101,7 +111,7 @@ function Layout() {
           {SECTIONS.map((s) => (
             <div key={s.title} className="flex flex-col gap-0.5">
               <div className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-sidebar-foreground/50">{s.title}</div>
-              {s.items.map((i) => <SideLink key={i.to} item={i} contagem={i.badge === "assinaturas" ? pendentes : undefined} />)}
+              {s.items.map((i) => <SideLink key={i.to} item={i} contagem={i.badge === "assinaturas" ? pendentes : i.badge === "vendas" ? vendasPendentes : undefined} />)}
             </div>
           ))}
         </nav>

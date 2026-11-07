@@ -797,6 +797,87 @@ export type Database = {
         }
         Relationships: []
       }
+      vendas_recebidas: {
+        Row: {
+          chave: string
+          cliente_id: string | null
+          cnpj: string | null
+          condicao_pagamento: string | null
+          curso_acesso: Json
+          email: string | null
+          id: string
+          id_cliente: string | null
+          id_cliente_appcrc: string | null
+          id_cliente_smarttv: string | null
+          meio_pagamento: string | null
+          motivo_descarte: string | null
+          nome: string | null
+          payload: Json
+          recebido_em: string
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          telefone: string | null
+          tipo: string | null
+          vendedor: string | null
+          vendedor_email: string | null
+          whatsapp: string | null
+          whatsapp2: string | null
+        }
+        Insert: {
+          chave: string
+          cliente_id?: string | null
+          cnpj?: string | null
+          condicao_pagamento?: string | null
+          curso_acesso?: Json
+          email?: string | null
+          id?: string
+          id_cliente?: string | null
+          id_cliente_appcrc?: string | null
+          id_cliente_smarttv?: string | null
+          meio_pagamento?: string | null
+          motivo_descarte?: string | null
+          nome?: string | null
+          payload: Json
+          recebido_em?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          telefone?: string | null
+          tipo?: string | null
+          vendedor?: string | null
+          vendedor_email?: string | null
+          whatsapp?: string | null
+          whatsapp2?: string | null
+        }
+        Update: {
+          chave?: string
+          cliente_id?: string | null
+          cnpj?: string | null
+          condicao_pagamento?: string | null
+          curso_acesso?: Json
+          email?: string | null
+          id?: string
+          id_cliente?: string | null
+          id_cliente_appcrc?: string | null
+          id_cliente_smarttv?: string | null
+          meio_pagamento?: string | null
+          motivo_descarte?: string | null
+          nome?: string | null
+          payload?: Json
+          recebido_em?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          telefone?: string | null
+          tipo?: string | null
+          vendedor?: string | null
+          vendedor_email?: string | null
+          whatsapp?: string | null
+          whatsapp2?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       clientes: {
@@ -883,6 +964,7 @@ export type Database = {
       criar_modelo: { Args: { _produto_id: string; _nome: string }; Returns: string }
       duplicar_modelo: { Args: { _modelo_id: string }; Returns: string }
       ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined }
+      pode_revisar_vendas: { Args: never; Returns: boolean }
       publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined }
       dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number }
       gere_produto: { Args: { _produto_id: string }; Returns: boolean }

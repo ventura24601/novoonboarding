@@ -1,12 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { z } from "zod";
+import { Inbox } from "lucide-react";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, useSellers } from "@/lib/session";
 import { CLIENT_TYPES } from "@/lib/crm";
 import { useProdutos } from "@/lib/session";
 import { clientBaseSchema } from "@/lib/client-form";
+import { formatarDocumento, observacaoDaVenda } from "@/lib/vendas";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_authenticated/clientes/novo")({
+  validateSearch: z.object({ venda: z.string().uuid().optional() }),
   head: () => ({ meta: [
     { title: "Novo contrato — ICOM" },
     { name: "description", content: "Cadastro de clínicas, produtos contratados e diagnóstico comercial da Icom." },
@@ -51,6 +55,38 @@ function NewClient() {
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF({ ...f, [k]: e.target.value });
   const sellerId = f.seller_id || me?.id || "";
 
+  // Cadastro a partir de uma venda recebida pelo webhook: preenche o formulário uma vez.
+  const { venda: vendaId } = Route.useSearch();
+  const [pago, setPago] = useState(false);
+  const { data: venda } = useQuery({
+    queryKey: ["venda", vendaId],
+    enabled: !!vendaId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("vendas_recebidas").select("*").eq("id", vendaId!).maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const preenchido = useRef(false);
+  useEffect(() => {
+    if (!venda || preenchido.current || !sellers.length) return;
+    preenchido.current = true;
+    const vendedor = venda.vendedor_email ? sellers.find((s) => s.email?.toLowerCase() === venda.vendedor_email) : undefined;
+    setF((cur) => ({
+      ...cur,
+      clinic_name: venda.nome ?? "",
+      document: formatarDocumento(venda.cnpj),
+      phone: venda.telefone ?? "",
+      whatsapp: venda.whatsapp ?? "",
+      email: venda.email ?? "",
+      special_condition: venda.condicao_pagamento ?? "",
+      general_notes: observacaoDaVenda(venda),
+      seller_id: vendedor?.id ?? cur.seller_id,
+    }));
+    setPago(/compra efetuada|pag[oa]|aprovad/i.test(venda.tipo ?? ""));
+  }, [venda, sellers]);
+  const vendaRevisada = !!venda && venda.status !== "pendente";
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const parsed = schema.safeParse({ ...f, seller_id: sellerId });
@@ -58,16 +94,28 @@ function NewClient() {
       toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
       return;
     }
+    if (vendaRevisada) {
+      toast.error("Esta venda já foi revisada.");
+      return;
+    }
     setSaving(true);
-    const { error } = await supabase.from("clients").insert({ ...parsed.data, value: parsed.data.value ?? 0, created_by: me?.id ?? null });
-    setSaving(false);
-    if (error) {
+    const { data: novo, error } = await supabase.from("clients")
+      .insert({ ...parsed.data, value: parsed.data.value ?? 0, created_by: me?.id ?? null, ...(venda ? { paid: pago } : {}) })
+      .select("id").single();
+    if (error || !novo) {
+      setSaving(false);
       toast.error("Erro ao salvar cliente.");
       return;
     }
-    toast.success("Cliente cadastrado! O tempo de onboarding começou a contar.");
+    if (venda) {
+      const { error: e2 } = await supabase.from("vendas_recebidas").update({ status: "aprovada", cliente_id: novo.id }).eq("id", venda.id);
+      if (e2) toast.error(`Cliente criado, mas a venda não foi marcada como aprovada: ${e2.message}`);
+      await Promise.all([qc.invalidateQueries({ queryKey: ["vendas-recebidas"] }), qc.invalidateQueries({ queryKey: ["vendas-pendentes"] })]);
+    }
+    setSaving(false);
+    toast.success(venda ? "Venda aprovada e cliente cadastrado." : "Cliente cadastrado! O tempo de onboarding começou a contar.");
     qc.invalidateQueries({ queryKey: ["clients"] });
-    navigate({ to: "/clientes" });
+    navigate(venda ? { to: "/vendas" } : { to: "/clientes" });
   }
 
   return (
@@ -76,6 +124,26 @@ function NewClient() {
         <h1 className="text-2xl font-semibold">Novo contrato</h1>
         <p className="text-muted-foreground">Preencha os dados da venda para iniciar o onboarding.</p>
       </div>
+
+      {venda && (
+        <section className={`flex flex-wrap items-start gap-3 rounded-lg border p-4 ${vendaRevisada ? "border-[#E2E8F0] bg-[#F8FAFC]" : "border-[#FCD34D] bg-[#FFFBEB]"}`}>
+          <Inbox className="mt-0.5 h-5 w-5 shrink-0 text-[#B45309]" />
+          <div className="min-w-0 flex-1 text-sm">
+            <div className="font-semibold">{vendaRevisada ? "Esta venda já foi revisada" : "Revisão de venda recebida automaticamente"}</div>
+            <p className="text-muted-foreground">
+              {vendaRevisada
+                ? "Ela não pode virar outro cliente. Volte para Vendas recebidas."
+                : "Os campos foram preenchidos com o que chegou do sistema de vendas. Confira os dados, escolha os produtos e o vendedor, e cadastre: a venda fica aprovada e ligada a este cliente."}
+            </p>
+            {!vendaRevisada && (
+              <label className="mt-2 flex items-center gap-2 font-medium">
+                <Checkbox checked={pago} onCheckedChange={(v) => setPago(v === true)} />
+                Pagamento confirmado{venda.tipo ? ` (${venda.tipo}${venda.meio_pagamento ? ` · ${venda.meio_pagamento}` : ""})` : ""}
+              </label>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Dados da clínica</h2>
@@ -156,8 +224,8 @@ function NewClient() {
       </section>
 
       <div className="flex justify-end gap-3">
-        <Button type="button" variant="outline" onClick={() => navigate({ to: "/clientes" })}>Cancelar</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Cadastrar cliente"}</Button>
+        <Button type="button" variant="outline" onClick={() => navigate(venda ? { to: "/vendas" } : { to: "/clientes" })}>Cancelar</Button>
+        <Button type="submit" disabled={saving || vendaRevisada}>{saving ? "Salvando..." : venda ? "Aprovar e cadastrar cliente" : "Cadastrar cliente"}</Button>
       </div>
     </form>
   );
