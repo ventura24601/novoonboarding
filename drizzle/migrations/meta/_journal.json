@@ -85,6 +85,13 @@
       "when": 1793800011000,
       "tag": "0011_vendas_recebidas",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793800012000,
+      "tag": "0012_reabrir_etapa",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,12 @@ import type { Database } from "@/integrations/supabase/types";
 import { useMe, useSellers } from "@/lib/session";
 import { ETAPA_STATUS_LABEL, statusToken } from "@/lib/status";
 import { Card, ColorBadge, StatusBadge } from "@/components/app/ui";
+import {
+  AcoesEtapa,
+  EditarOnboarding,
+  marcarItem,
+  useRecarregarOnboarding,
+} from "@/components/app/onboarding-edicao";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -118,6 +124,7 @@ function DetalheOnboarding() {
   const { data, isLoading } = useOnboarding(id);
   const { data: notas = [] } = useNotas(id);
   const { data: pessoas = [] } = useSellers();
+  const { data: me } = useMe();
   const [abertas, setAbertas] = useState<Set<string>>(new Set());
   const iniciou = useRef(false);
 
@@ -170,6 +177,12 @@ function DetalheOnboarding() {
     );
   }
 
+  const podeOperar = !!me?.podeOperar;
+  const gestor =
+    !!me &&
+    (me.isAdmin ||
+      (me.roles.includes("gestor") && me.produtosGeridos.includes(r.produto_id ?? "")));
+  const encerrado = r.status === "cancelado" || r.status === "pausado";
   const total = r.etapas_total ?? 0;
   const feitas = r.etapas_feitas ?? 0;
   const pct = total ? Math.round((feitas / total) * 100) : 0;
@@ -196,24 +209,35 @@ function DetalheOnboarding() {
             <div className="flex flex-wrap items-center gap-2">
               <ColorBadge color={r.produto_cor ?? "#7C3AED"}>{r.produto_nome}</ColorBadge>
               <StatusBadge status={r.situacao} />
-              {r.status && r.status !== "em_andamento" && r.status !== "concluido" && (
-                <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] font-bold text-[#475569]">
-                  {STATUS_ONB[r.status] ?? r.status}
-                </span>
-              )}
+              {r.status &&
+                r.status !== "em_andamento" &&
+                r.status !== "concluido" &&
+                r.situacao !== r.status && (
+                  <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] font-bold text-[#475569]">
+                    {STATUS_ONB[r.status] ?? r.status}
+                  </span>
+                )}
             </div>
             <h1 className="mt-2 text-2xl font-semibold">{r.cliente_nome}</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
               Onboarding de {r.produto_nome} · modelo v{r.modelo_versao ?? 1} · prazos em dias{" "}
               {r.calendario === "corridos" ? "corridos" : "úteis"}
-              {r.motivo && r.status === "pausado" && <> · pausado: {r.motivo}</>}
+              {r.motivo && (r.status === "pausado" || r.status === "cancelado") && (
+                <>
+                  {" "}
+                  · {r.status === "pausado" ? "pausado" : "cancelado"}: {r.motivo}
+                </>
+              )}
             </p>
           </div>
-          <Button variant="outline" asChild>
-            <Link to="/clientes/$id" params={{ id: r.cliente_id! }}>
-              <Building2 /> Abrir cliente
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <EditarOnboarding resumo={r} podeOperar={podeOperar} gestor={gestor} />
+            <Button variant="outline" asChild>
+              <Link to="/clientes/$id" params={{ id: r.cliente_id! }}>
+                <Building2 /> Abrir cliente
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -294,6 +318,9 @@ function DetalheOnboarding() {
                       )}
                       onboardingId={id}
                       nomePessoa={nomePessoa}
+                      podeOperar={podeOperar}
+                      gestor={gestor}
+                      encerrado={encerrado}
                     />
                   ))}
                 </ol>
@@ -406,7 +433,13 @@ function LinhaEtapa({
   eventos,
   onboardingId,
   nomePessoa,
+  podeOperar,
+  gestor,
+  encerrado,
 }: {
+  podeOperar: boolean;
+  gestor: boolean;
+  encerrado: boolean;
   etapa: Etapa;
   atual: boolean;
   aberta: boolean;
@@ -420,6 +453,10 @@ function LinhaEtapa({
   nomePessoa: (id: string | null | undefined) => string | null;
 }) {
   const feitos = checklist.filter((c) => c.feito).length;
+  const pendentesObrigatorios = checklist.filter((c) => c.obrigatorio && !c.feito).length;
+  const recarregar = useRecarregarOnboarding(onboardingId);
+  const marcavel =
+    podeOperar && !encerrado && etapa.status !== "concluida" && etapa.status !== "pulada";
   const prazoTexto =
     etapa.status === "concluida"
       ? `Concluída em ${dataBR(etapa.concluida_em)}`
@@ -472,6 +509,14 @@ function LinhaEtapa({
       </button>
       {aberta && (
         <div className="space-y-4 border-t px-3 pb-3 pt-3 sm:pl-12">
+          <AcoesEtapa
+            etapa={etapa}
+            onboardingId={onboardingId}
+            podeOperar={podeOperar}
+            gestor={gestor}
+            encerrado={encerrado}
+            checklistPendente={pendentesObrigatorios}
+          />
           <div className="grid gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
             <span>
               Status:{" "}
@@ -521,11 +566,15 @@ function LinhaEtapa({
               <ul className="space-y-1">
                 {checklist.map((c) => (
                   <li key={c.id} className="flex items-center gap-2 text-sm">
-                    <span
-                      className={`flex h-4 w-4 items-center justify-center rounded border ${c.feito ? "border-[#10B981] bg-[#10B981] text-white" : "border-[#CBD5E1] bg-white"}`}
+                    <button
+                      type="button"
+                      disabled={!marcavel}
+                      onClick={() => marcarItem(c.id, !c.feito, recarregar)}
+                      aria-label={c.feito ? `Desmarcar ${c.texto}` : `Marcar ${c.texto}`}
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition enabled:cursor-pointer enabled:hover:border-primary ${c.feito ? "border-[#10B981] bg-[#10B981] text-white" : "border-[#CBD5E1] bg-white"}`}
                     >
                       {c.feito && <Check className="h-3 w-3" strokeWidth={3} />}
-                    </span>
+                    </button>
                     <span className={c.feito ? "text-muted-foreground line-through" : ""}>
                       {c.texto}
                     </span>

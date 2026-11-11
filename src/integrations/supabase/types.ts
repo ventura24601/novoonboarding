@@ -966,6 +966,7 @@ export type Database = {
       ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined }
       pode_revisar_vendas: { Args: never; Returns: boolean }
       publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined }
+      reabrir_etapa: { Args: { _etapa_id: string }; Returns: undefined }
       dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number }
       gere_produto: { Args: { _produto_id: string }; Returns: boolean }
       has_any_users: { Args: never; Returns: boolean }
