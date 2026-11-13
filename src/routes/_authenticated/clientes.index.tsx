@@ -4,9 +4,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients, useMe, useProdutos, useSellers, type ClientRow } from "@/lib/session";
-import { clientStatus, formatBRL, formatDuration, STATUS_LABEL, CLIENT_STATUS_TOKEN, canReleaseOnboarding } from "@/lib/crm";
+import { clientStatus, formatBRL, formatDuration, STATUS_LABEL, CLIENT_STATUS_TOKEN } from "@/lib/crm";
 import { useServerFn } from "@tanstack/react-start";
 import { confirmContractManually } from "@/lib/contract-verification.functions";
+import { EnviarOnboardingDialog } from "@/components/app/enviar-onboarding";
 import { PageHeader, StatusBadge } from "@/components/app/ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ function ClientsPage() {
   const [status, setStatus] = useState<string>("all");
   const [now, setNow] = useState(Date.now());
   const [saving, setSaving] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState<string | null>(null);
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 60000);
     return () => clearInterval(t);
@@ -86,23 +88,6 @@ function ClientsPage() {
       } catch { toast.error("Falha ao enviar a ficha ao n8n."); }
     }
     await qc.invalidateQueries({ queryKey: ["clients"] });
-    setSaving(null);
-  }
-
-  async function release(c: ClientRow) {
-    if (!canReleaseOnboarding(c)) return;
-    setSaving(c.id);
-    const { data, error } = await supabase.from("clients").update({ onboarding_released_at: new Date().toISOString() })
-      .eq("id", c.id).eq("paid", true).eq("contract_signed", true).not("contract_verified_at", "is", null)
-      .is("onboarding_released_at", null).select("id");
-    if (error || !data?.length) toast.error("Não foi possível liberar. Confira o pagamento e a assinatura verificada.");
-    else {
-      const { count } = await supabase.from("onboardings").select("id", { count: "exact", head: true }).eq("cliente_id", c.id);
-      toast.success(count
-        ? `Cliente liberado: ${count} onboarding${count === 1 ? "" : "s"} iniciado${count === 1 ? "" : "s"}.`
-        : "Cliente liberado. Nenhum produto contratado tem modelo de onboarding publicado.");
-    }
-    await Promise.all([qc.invalidateQueries({ queryKey: ["clients"] }), qc.invalidateQueries({ queryKey: ["onboardings"] })]);
     setSaving(null);
   }
 
@@ -214,13 +199,12 @@ function ClientsPage() {
                         <Link to="/clientes/$id" params={{ id: c.id }}>Editar</Link>
                       </Button>
                       {c.onboarding_released_at ? (
-                        <Button size="sm" variant="secondary" asChild><Link to="/clientes/$id" params={{ id: c.id }} hash="onboarding">Ver onboarding</Link></Button>
+                        <Button size="sm" variant="secondary" onClick={() => setEnviando(c.id)}>Onboardings</Button>
                       ) : (
-                        <span title={!c.contract_verified_at ? "Aguardando verificação da assinatura" : !c.paid ? "Aguardando pagamento" : "Iniciar o onboarding dos produtos contratados"}>
-                          <Button size="sm" disabled={!canReleaseOnboarding(c) || saving === c.id} onClick={() => release(c)}>
-                            {saving === c.id ? "Salvando…" : "Liberar para Onboarding"}
-                          </Button>
-                        </span>
+                        <Button size="sm" onClick={() => setEnviando(c.id)}
+                          title={!c.contract_verified_at ? "Falta o contrato verificado" : !c.paid ? "Falta confirmar o pagamento" : "Iniciar os onboardings dos produtos contratados"}>
+                          Enviar para onboarding
+                        </Button>
                       )}
                     </div>
                   </TableCell>)}
@@ -235,6 +219,7 @@ function ClientsPage() {
           </TableBody>
         </Table>
       </div>
+      {enviando && <EnviarOnboardingDialog clienteId={enviando} onClose={() => setEnviando(null)} />}
     </div>
   );
 }

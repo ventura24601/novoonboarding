@@ -701,6 +701,24 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_onboardings: {
+        Row: {
+          created_at: string
+          onboarding_produto_id: string
+          produto_id: string
+        }
+        Insert: {
+          created_at?: string
+          onboarding_produto_id: string
+          produto_id: string
+        }
+        Update: {
+          created_at?: string
+          onboarding_produto_id?: string
+          produto_id?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           ativo: boolean
@@ -965,6 +983,7 @@ export type Database = {
       duplicar_modelo: { Args: { _modelo_id: string }; Returns: string }
       ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined }
       pode_revisar_vendas: { Args: never; Returns: boolean }
+      iniciar_onboardings_pendentes: { Args: { _cliente_id: string }; Returns: number }
       publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined }
       reabrir_etapa: { Args: { _etapa_id: string }; Returns: undefined }
       dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number }

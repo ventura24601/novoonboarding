@@ -21,6 +21,7 @@ import { Route as AuthenticatedMinhasEtapasRouteImport } from './routes/_authent
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
+import { Route as AuthenticatedVinculosRouteImport } from './routes/_authenticated/vinculos'
 import { Route as AuthenticatedClientesIndexRouteImport } from './routes/_authenticated/clientes.index'
 import { Route as AuthenticatedClientesIdRouteImport } from './routes/_authenticated/clientes.$id'
 import { Route as AuthenticatedClientesNovoRouteImport } from './routes/_authenticated/clientes.novo'
@@ -93,6 +94,11 @@ const AuthenticatedVendasRoute = AuthenticatedVendasRouteImport.update({
   path: '/vendas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedVinculosRoute = AuthenticatedVinculosRouteImport.update({
+  id: '/vinculos',
+  path: '/vinculos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedClientesIndexRoute =
   AuthenticatedClientesIndexRouteImport.update({
     id: '/clientes/',
@@ -155,6 +161,7 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/vinculos': typeof AuthenticatedVinculosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas': typeof AuthenticatedVendasRoute
+  '/vinculos': typeof AuthenticatedVinculosRoute
   '/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/modelos/$id': typeof AuthenticatedModelosIdRoute
@@ -201,6 +209,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
+  '/_authenticated/vinculos': typeof AuthenticatedVinculosRoute
   '/_authenticated/clientes/$id': typeof AuthenticatedClientesIdRoute
   '/_authenticated/clientes/novo': typeof AuthenticatedClientesNovoRoute
   '/_authenticated/modelos/$id': typeof AuthenticatedModelosIdRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/usuarios'
     | '/vendas'
+    | '/vinculos'
     | '/clientes/$id'
     | '/clientes/novo'
     | '/modelos/$id'
@@ -247,6 +257,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/usuarios'
     | '/vendas'
+    | '/vinculos'
     | '/clientes/$id'
     | '/clientes/novo'
     | '/modelos/$id'
@@ -270,6 +281,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/usuarios'
     | '/_authenticated/vendas'
+    | '/_authenticated/vinculos'
     | '/_authenticated/clientes/$id'
     | '/_authenticated/clientes/novo'
     | '/_authenticated/modelos/$id'
@@ -376,6 +388,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVendasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/vinculos': {
+      id: '/_authenticated/vinculos'
+      path: '/vinculos'
+      fullPath: '/vinculos'
+      preLoaderRoute: typeof AuthenticatedVinculosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/clientes/': {
       id: '/_authenticated/clientes/'
       path: '/clientes'
@@ -452,6 +471,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
+  AuthenticatedVinculosRoute: typeof AuthenticatedVinculosRoute
   AuthenticatedClientesIdRoute: typeof AuthenticatedClientesIdRoute
   AuthenticatedClientesNovoRoute: typeof AuthenticatedClientesNovoRoute
   AuthenticatedModelosIdRoute: typeof AuthenticatedModelosIdRoute
@@ -470,6 +490,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
+  AuthenticatedVinculosRoute: AuthenticatedVinculosRoute,
   AuthenticatedClientesIdRoute: AuthenticatedClientesIdRoute,
   AuthenticatedClientesNovoRoute: AuthenticatedClientesNovoRoute,
   AuthenticatedModelosIdRoute: AuthenticatedModelosIdRoute,

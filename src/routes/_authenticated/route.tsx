@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Inbox, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
+  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Inbox, Waypoints, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ const SECTIONS: { title: string; items: NavItem[] }[] = [
       { to: "/painel", label: "Painel", icon: Gauge },
       { to: "/minhas-etapas", label: "Minhas etapas", icon: ListChecks },
       { to: "/modelos", label: "Modelos de onboarding", icon: Workflow },
+      { to: "/vinculos", label: "Produtos e onboardings", icon: Waypoints },
       { to: "/carteira", label: "Clientes", icon: Building2 },
     ],
   },

@@ -2,7 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, Rocket } from "lucide-react";
+import { EnviarOnboardingDialog } from "@/components/app/enviar-onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useSellers, useProdutos, useOnboardings } from "@/lib/session";
 import { ColorBadge, StatusBadge } from "@/components/app/ui";
@@ -82,6 +83,7 @@ function ClientSheet() {
     },
   });
   const [editing, setEditing] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [f, setF] = useState<ClientForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
@@ -148,8 +150,14 @@ function ClientSheet() {
             <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar ficha"}</Button>
           </div>
         ) : (
-          <Button type="button" onClick={startEdit}><Pencil className="mr-2 h-4 w-4" />Editar dados</Button>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" onClick={startEdit}><Pencil className="mr-2 h-4 w-4" />Editar dados</Button>
+            <Button type="button" onClick={() => setEnviando(true)}>
+              <Rocket className="mr-2 h-4 w-4" />{c.onboarding_released_at ? "Onboardings" : "Enviar para onboarding"}
+            </Button>
+          </div>
         )}
+        {enviando && <EnviarOnboardingDialog clienteId={c.id} onClose={() => setEnviando(false)} />}
       </div>
 
       {!editing && missing.length > 0 && (
