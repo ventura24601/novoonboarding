@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Inbox, Waypoints, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
+  LayoutDashboard, FileSignature, FilePlus2, Wallet, PenLine, Inbox, Waypoints, Filter, Gauge, ListChecks, Workflow, Building2, Settings, LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,10 @@ export const Route = createFileRoute("/_authenticated")({
 type NavItem = { to: string; label: string; icon: LucideIcon; exact?: boolean; badge?: "assinaturas" | "vendas" };
 
 const SECTIONS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Análises",
+    items: [{ to: "/funis", label: "Funis", icon: Filter }],
+  },
   {
     title: "Etapa 1 · Contratos",
     items: [
