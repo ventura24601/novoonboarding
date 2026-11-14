@@ -17,7 +17,6 @@ import { Route as AuthenticatedCarteiraRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedComissoesRouteImport } from './routes/_authenticated/comissoes'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedFunisRouteImport } from './routes/_authenticated/funis'
 import { Route as AuthenticatedMinhasEtapasRouteImport } from './routes/_authenticated/minhas-etapas'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
@@ -72,11 +71,6 @@ const AuthenticatedConfiguracoesRoute =
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFunisRoute = AuthenticatedFunisRouteImport.update({
-  id: '/funis',
-  path: '/funis',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMinhasEtapasRoute =
@@ -163,7 +157,6 @@ export interface FileRoutesByFullPath {
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/funis': typeof AuthenticatedFunisRoute
   '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -187,7 +180,6 @@ export interface FileRoutesByTo {
   '/comissoes': typeof AuthenticatedComissoesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/funis': typeof AuthenticatedFunisRoute
   '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   '/_authenticated/comissoes': typeof AuthenticatedComissoesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/funis': typeof AuthenticatedFunisRoute
   '/_authenticated/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
@@ -239,7 +230,6 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/configuracoes'
     | '/dashboard'
-    | '/funis'
     | '/minhas-etapas'
     | '/painel'
     | '/usuarios'
@@ -263,7 +253,6 @@ export interface FileRouteTypes {
     | '/comissoes'
     | '/configuracoes'
     | '/dashboard'
-    | '/funis'
     | '/minhas-etapas'
     | '/painel'
     | '/usuarios'
@@ -288,7 +277,6 @@ export interface FileRouteTypes {
     | '/_authenticated/comissoes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
-    | '/_authenticated/funis'
     | '/_authenticated/minhas-etapas'
     | '/_authenticated/painel'
     | '/_authenticated/usuarios'
@@ -370,13 +358,6 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/funis': {
-      id: '/_authenticated/funis'
-      path: '/funis'
-      fullPath: '/funis'
-      preLoaderRoute: typeof AuthenticatedFunisRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/minhas-etapas': {
@@ -486,7 +467,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedComissoesRoute: typeof AuthenticatedComissoesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedFunisRoute: typeof AuthenticatedFunisRoute
   AuthenticatedMinhasEtapasRoute: typeof AuthenticatedMinhasEtapasRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
@@ -506,7 +486,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedComissoesRoute: AuthenticatedComissoesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedFunisRoute: AuthenticatedFunisRoute,
   AuthenticatedMinhasEtapasRoute: AuthenticatedMinhasEtapasRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
