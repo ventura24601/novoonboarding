@@ -20,6 +20,8 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
+  Download,
+  Printer,
   AlertTriangle,
   Clock,
   Columns3,
@@ -41,7 +43,12 @@ import type { Database } from "@/integrations/supabase/types";
 import { useMe } from "@/lib/session";
 import {
   CANAIS,
+  ENCERRADOS,
+  LINHAS,
   RESULTADOS,
+  noIntervalo,
+  produtoDaLinha,
+  recortarLinha,
   STATUS_RETENCAO,
   TAGS_SUGERIDAS,
   contagem,
@@ -56,6 +63,8 @@ import {
 import { sincronizarRetencaoAgora } from "@/lib/retencao.functions";
 import { usePessoasAtivas } from "@/components/app/onboarding-edicao";
 import { RetencaoAnalises } from "@/components/app/retencao-analises";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { EmptyState, FilterLabel, KpiCard } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +101,15 @@ const searchSchema = z.object({
   resp: z.string().optional(),
   atrasados: z.boolean().optional(),
   periodo: z.enum(["30", "90", "tudo"]).optional(),
+  de: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  ate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  linha: z.enum(["redes", "black"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/retencao")({
@@ -103,6 +121,92 @@ export const Route = createFileRoute("/_authenticated/retencao")({
 type Caso = Database["public"]["Views"]["retencao_casos_situacao"]["Row"];
 type CasoOk = Caso & { id: string; status: string; data_solicitacao: string; tags: string[] };
 const TODOS = "__todos__";
+const isoDia = (d: Date) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const diasAtras = (n: number): [string, string] => {
+  const h = new Date();
+  const d = new Date();
+  d.setDate(d.getDate() - (n - 1));
+  return [isoDia(d), isoDia(h)];
+};
+const PERIODOS_RELATORIO: { r: string; datas: () => [string | null, string | null] }[] = [
+  { r: "Tudo", datas: () => [null, null] },
+  { r: "30 dias", datas: () => diasAtras(30) },
+  { r: "90 dias", datas: () => diasAtras(90) },
+  {
+    r: "Este mês",
+    datas: () => {
+      const h = new Date();
+      return [isoDia(new Date(h.getFullYear(), h.getMonth(), 1)), isoDia(h)];
+    },
+  },
+  {
+    r: "Mês passado",
+    datas: () => {
+      const h = new Date();
+      return [
+        isoDia(new Date(h.getFullYear(), h.getMonth() - 1, 1)),
+        isoDia(new Date(h.getFullYear(), h.getMonth(), 0)),
+      ];
+    },
+  },
+  {
+    r: "Este ano",
+    datas: () => {
+      const h = new Date();
+      return [isoDia(new Date(h.getFullYear(), 0, 1)), isoDia(h)];
+    },
+  },
+];
+
+/** CSV do relatório (abre direto no Excel): um caso por linha. */
+function exportarRelatorio(
+  casos: CasoOk[],
+  linha: string | null,
+  de: string | null,
+  ate: string | null,
+) {
+  const cab = [
+    "ID AppCRC",
+    "Cliente",
+    "Telefone",
+    "Solicitado em",
+    "Formulário preenchido em",
+    "Status",
+    "Motivo",
+    linha ? `Produtos ${linha}` : "Produtos",
+    "Produtos cancelados",
+    "1º contato",
+    "Tags",
+  ];
+  const linhas = casos.map((c) => {
+    const sv = servicosDe(c);
+    return [
+      c.id_appcrc ?? "",
+      c.cliente_nome ?? "",
+      c.telefone ?? "",
+      dataHora(c.data_solicitacao),
+      dataHora(c.data_preenchimento),
+      statusRetencao(c.status).rotulo,
+      c.motivo_api ?? "",
+      sv.map((x) => x.nome).join(", "),
+      sv
+        .filter((x) => x.cancelado)
+        .map((x) => x.nome)
+        .join(", "),
+      dataHora(c.contato_feito_em),
+      c.tags.join(", "),
+    ];
+  });
+  const csv = [cab, ...linhas]
+    .map((l) => l.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(";"))
+    .join("\n");
+  const url = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  const nome = `retencao${linha ? `-${linha.toLowerCase()}` : ""}${de ? `-${de}` : ""}${ate ? `-a-${ate}` : ""}.csv`;
+  Object.assign(document.createElement("a"), { href: url, download: nome }).click();
+  URL.revokeObjectURL(url);
+}
+
 const servicosDe = (c: { servicos?: unknown }) =>
   (Array.isArray(c.servicos) ? c.servicos : []) as { nome: string; cancelado: boolean }[];
 const dataHora = (d: string | null) =>
@@ -148,6 +252,20 @@ function Retencao() {
   const [dashMinimizado, setDashMinimizado] = useState(
     () => typeof window !== "undefined" && localStorage.getItem("retencao-dash-min") === "1",
   );
+  const [ocultos, setOcultos] = useState<StatusRetencao[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(
+        localStorage.getItem("retencao-colunas-ocultas") ?? "[]",
+      ) as StatusRetencao[];
+    } catch {
+      return [];
+    }
+  });
+  const salvarOcultos = (v: StatusRetencao[]) => {
+    setOcultos(v);
+    localStorage.setItem("retencao-colunas-ocultas", JSON.stringify(v));
+  };
   const alternarDash = (v: boolean) => {
     setDashMinimizado(v);
     localStorage.setItem("retencao-dash-min", v ? "1" : "0");
@@ -166,6 +284,7 @@ function Retencao() {
     const d = soDigitos(t);
     return doPeriodo.filter((c) => {
       if (busca.status && c.status !== busca.status) return false;
+      if (!busca.status && ocultos.includes(c.status as StatusRetencao)) return false;
       if (busca.tag && !c.tags.includes(busca.tag)) return false;
       if (busca.motivo && c.motivo_api !== busca.motivo) return false;
       if (busca.resp && (busca.resp === "sem" ? c.responsavel_id : c.responsavel_id !== busca.resp))
@@ -179,8 +298,29 @@ function Retencao() {
         (d.length >= 3 && soDigitos(c.telefone).includes(d))
       );
     });
-  }, [doPeriodo, q, busca]);
+  }, [doPeriodo, q, busca, ocultos]);
   const m = useMemo(() => metricas(doPeriodo), [doPeriodo]);
+  const linhaSel = LINHAS.find((l) => l.id === busca.linha) ?? null;
+  const relatorio = useMemo(() => {
+    const base = casos.filter(
+      (c) =>
+        (!busca.motivo || c.motivo_api === busca.motivo) &&
+        (!busca.tag || c.tags.includes(busca.tag)),
+    );
+    return recortarLinha(
+      noIntervalo(base, busca.de ?? null, busca.ate ?? null),
+      busca.linha ?? null,
+    );
+  }, [casos, busca.motivo, busca.tag, busca.de, busca.ate, busca.linha]);
+  const intervalo = useMemo(() => {
+    if (!busca.de && !busca.ate) return { inicio: null, fim: null };
+    const datas = casos.map((c) => c.data_solicitacao).sort();
+    const inicio = new Date(
+      `${busca.de ?? datas[0]?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)}T12:00:00-03:00`,
+    );
+    const fim = busca.ate ? new Date(`${busca.ate}T12:00:00-03:00`) : new Date();
+    return { inicio, fim };
+  }, [busca.de, busca.ate, casos]);
   const analisaveis = useMemo(
     () =>
       casos.filter(
@@ -335,7 +475,7 @@ function Retencao() {
       )}
 
       {/* Dash (resumo) */}
-      {dashMinimizado && visao !== "dash" ? (
+      {visao === "dash" ? null : dashMinimizado ? (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-card px-4 py-2.5 text-sm shadow-card">
           <span>
             Em aberto <b>{m.abertos}</b>
@@ -360,19 +500,17 @@ function Retencao() {
         </div>
       ) : (
         <section className="space-y-3">
-          {visao !== "dash" && (
-            <div className="flex items-center justify-between">
-              <span className="filter-label">Resumo</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 text-xs text-muted-foreground"
-                onClick={() => alternarDash(true)}
-              >
-                <ChevronUp /> Minimizar
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center justify-between">
+            <span className="filter-label">Resumo</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 text-xs text-muted-foreground"
+              onClick={() => alternarDash(true)}
+            >
+              <ChevronUp /> Minimizar
+            </Button>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard
               title="Em aberto"
@@ -540,24 +678,118 @@ function Retencao() {
 
       {visao === "dash" && (
         <>
-          <div className="flex flex-wrap items-end gap-3">
-            <Filtro
-              rotulo="Motivo"
-              valor={busca.motivo}
-              onChange={(v) => set({ motivo: v })}
-              opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
-            />
-            <Filtro
-              rotulo="Tag"
-              valor={busca.tag}
-              onChange={(v) => set({ tag: v })}
-              opcoes={todasTags.map((t) => ({ v: t, r: t }))}
-            />
-            <span className="pb-2 text-xs text-muted-foreground">
-              As análises usam todos os pedidos (sem o filtro de período).
-            </span>
+          <div className="space-y-3 rounded-xl border bg-card p-4 shadow-card print:hidden">
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <FilterLabel>Foco</FilterLabel>
+                <div className="flex rounded-lg border bg-white p-0.5">
+                  {[
+                    { id: undefined, r: "Geral" },
+                    ...LINHAS.map((l) => ({ id: l.id, r: l.rotulo })),
+                  ].map((o) => (
+                    <button
+                      key={o.r}
+                      type="button"
+                      onClick={() => set({ linha: o.id })}
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold ${busca.linha === o.id ? "bg-[#111827] text-white" : "text-muted-foreground"}`}
+                    >
+                      {o.r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <FilterLabel>Período</FilterLabel>
+                <div className="flex flex-wrap gap-1">
+                  {PERIODOS_RELATORIO.map((p) => {
+                    const [de, ate] = p.datas();
+                    const ativo = (busca.de ?? null) === de && (busca.ate ?? null) === ate;
+                    return (
+                      <Button
+                        key={p.r}
+                        size="sm"
+                        variant={ativo ? "dark" : "outline"}
+                        className="h-8 text-xs"
+                        onClick={() => set({ de: de ?? undefined, ate: ate ?? undefined })}
+                      >
+                        {p.r}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="w-36">
+                <FilterLabel htmlFor="rde">De</FilterLabel>
+                <Input
+                  id="rde"
+                  type="date"
+                  value={busca.de ?? ""}
+                  onChange={(e) => set({ de: e.target.value || undefined })}
+                />
+              </div>
+              <div className="w-36">
+                <FilterLabel htmlFor="rate">Até</FilterLabel>
+                <Input
+                  id="rate"
+                  type="date"
+                  value={busca.ate ?? ""}
+                  onChange={(e) => set({ ate: e.target.value || undefined })}
+                />
+              </div>
+              <Filtro
+                rotulo="Motivo"
+                valor={busca.motivo}
+                onChange={(v) => set({ motivo: v })}
+                opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
+              />
+              <Filtro
+                rotulo="Tag"
+                valor={busca.tag}
+                onChange={(v) => set({ tag: v })}
+                opcoes={todasTags.map((t) => ({ v: t, r: t }))}
+              />
+              <div className="ml-auto flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    exportarRelatorio(
+                      relatorio,
+                      linhaSel?.rotulo ?? null,
+                      busca.de ?? null,
+                      busca.ate ?? null,
+                    )
+                  }
+                >
+                  <Download /> Exportar CSV
+                </Button>
+                <Button variant="outline" onClick={() => window.print()}>
+                  <Printer /> Imprimir / PDF
+                </Button>
+              </div>
+            </div>
+            {linhaSel && (
+              <p className="text-xs text-muted-foreground">
+                Foco em <b>{linhaSel.rotulo}</b>: pedidos com algum produto que tenha “
+                {linhaSel.termo}” no nome (
+                {[
+                  ...new Set(
+                    casos
+                      .flatMap((c) => servicosDe(c).map((x) => x.nome))
+                      .filter((n) => produtoDaLinha(n, linhaSel.id)),
+                  ),
+                ]
+                  .sort()
+                  .join(", ") || "nenhum produto encontrado"}
+                ). Churn e produtos consideram só esses serviços.
+              </p>
+            )}
           </div>
-          <RetencaoAnalises casos={analisaveis} />
+          <RetencaoAnalises
+            casos={relatorio}
+            inicio={intervalo.inicio}
+            fim={intervalo.fim}
+            linha={linhaSel?.rotulo ?? null}
+          />
         </>
       )}
 
@@ -635,8 +867,63 @@ function Retencao() {
                 <X /> Limpar
               </Button>
             )}
-            <span className="ml-auto pb-2 text-xs text-muted-foreground">
-              {filtrados.length} caso{filtrados.length === 1 ? "" : "s"}
+            <span className="ml-auto flex items-center gap-3 pb-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Columns3 /> Colunas
+                    {ocultos.length
+                      ? ` (${ocultos.length} oculta${ocultos.length === 1 ? "" : "s"})`
+                      : ""}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-60 p-3">
+                  <div className="filter-label mb-2">Exibir status</div>
+                  <div className="space-y-1.5">
+                    {STATUS_RETENCAO.map((st) => (
+                      <label key={st.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                        <Checkbox
+                          checked={!ocultos.includes(st.id)}
+                          onCheckedChange={(v) =>
+                            salvarOcultos(
+                              v ? ocultos.filter((x) => x !== st.id) : [...ocultos, st.id],
+                            )
+                          }
+                        />
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: st.cor }}
+                        />
+                        {st.rotulo}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex gap-1.5 border-t pt-3">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 flex-1 text-xs"
+                      onClick={() => salvarOcultos([...ENCERRADOS])}
+                    >
+                      Ocultar encerrados
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs"
+                      onClick={() => salvarOcultos([])}
+                    >
+                      Todos
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Vale para o kanban e a tabela. Fica salvo neste navegador.
+                  </p>
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">
+                {filtrados.length} caso{filtrados.length === 1 ? "" : "s"}
+              </span>
             </span>
           </div>
 
@@ -652,6 +939,7 @@ function Retencao() {
             <Kanban
               casos={filtrados}
               statusFiltro={busca.status}
+              ocultos={ocultos}
               nomePessoa={nomePessoa}
               onAbrir={setAberto}
               onMover={mudarStatus}
@@ -784,6 +1072,7 @@ function Tags({ tags }: { tags: string[] }) {
 function Kanban({
   casos,
   statusFiltro,
+  ocultos,
   nomePessoa,
   onAbrir,
   onMover,
@@ -791,13 +1080,16 @@ function Kanban({
 }: {
   casos: CasoOk[];
   statusFiltro: string | undefined;
+  ocultos: StatusRetencao[];
   nomePessoa: (id: string | null) => string | null;
   onAbrir: (id: string) => void;
   onMover: (c: CasoOk, s: StatusRetencao) => void;
   onContato: (c: CasoOk) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  const colunas = STATUS_RETENCAO.filter((s) => !statusFiltro || s.id === statusFiltro);
+  const colunas = STATUS_RETENCAO.filter((s) =>
+    statusFiltro ? s.id === statusFiltro : !ocultos.includes(s.id),
+  );
   function fim(e: DragEndEvent) {
     const c = casos.find((x) => x.id === e.active.id);
     if (c && e.over) onMover(c, e.over.id as StatusRetencao);

@@ -113,7 +113,7 @@ function Layout() {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-sidebar px-3 py-5">
+      <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col bg-sidebar px-3 py-5 print:hidden">
         <Link to="/painel" className="mb-7 flex items-center gap-2.5 px-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm font-black text-white">IC</span>
           <span className="leading-tight">
@@ -135,7 +135,7 @@ function Layout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b bg-card/95 px-8 backdrop-blur">
+        <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-4 border-b bg-card/95 px-8 backdrop-blur print:hidden">
           <div className="text-sm text-muted-foreground">
             <Link to="/painel" className="font-semibold text-foreground hover:underline">{emAndamento} em andamento</Link>
             <span className="mx-2">·</span>

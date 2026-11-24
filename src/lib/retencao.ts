@@ -421,3 +421,105 @@ export function tendencia(semanas: Bucket[]) {
     direcao,
   };
 }
+
+/** Semanas ou meses cobrindo o intervalo [inicio, fim] (até 60 períodos). */
+export function porPeriodoAnalise(
+  casos: CasoAnalise[],
+  tipo: "semana" | "mes",
+  inicio: Date,
+  fim: Date,
+) {
+  let n: number;
+  if (tipo === "semana")
+    n =
+      Math.round((inicioSemana(fim).getTime() - inicioSemana(inicio).getTime()) / (7 * 86400_000)) +
+      1;
+  else
+    n = (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth()) + 1;
+  return agrupar(casos, Math.min(60, Math.max(1, n)), tipo, fim);
+}
+
+// ---------- Relatório por linha de produto ----------
+
+export type Linha = "redes" | "black";
+export const LINHAS: { id: Linha; rotulo: string; termo: string }[] = [
+  { id: "redes", rotulo: "Redes", termo: "rede" },
+  { id: "black", rotulo: "Black", termo: "black" },
+];
+const norm = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+const servicosCaso = (c: CasoAnalise) =>
+  (Array.isArray(c.servicos) ? c.servicos : []) as { nome: string; cancelado: boolean }[];
+
+/** Produto pertence à linha quando o nome contém a palavra (ex.: "Marketing Pro Black", "Redes + IA (combo)"). */
+export function produtoDaLinha(nome: string, linha: Linha) {
+  const termo = LINHAS.find((l) => l.id === linha)!.termo;
+  return norm(nome).includes(termo);
+}
+export const casoDaLinha = (c: CasoAnalise, linha: Linha) =>
+  servicosCaso(c).some((s) => produtoDaLinha(s.nome, linha));
+
+/** Só os serviços da linha em cada caso (para churn por produto e contagens da linha). */
+export function recortarLinha<T extends CasoAnalise>(casos: T[], linha: Linha | null): T[] {
+  if (!linha) return casos;
+  return casos
+    .filter((c) => casoDaLinha(c, linha))
+    .map((c) => ({ ...c, servicos: servicosCaso(c).filter((s) => produtoDaLinha(s.nome, linha)) }));
+}
+
+/** Números do relatório: pedidos, desfechos e churn dos serviços (da linha, quando houver recorte). */
+export function resumoRelatorio(casos: (CasoAnalise & { motivo_api?: string | null })[]) {
+  let cancelados = 0,
+    revertidos = 0,
+    downgrades = 0,
+    abertos = 0;
+  let servEnc = 0,
+    servCanc = 0;
+  const motivos = new Map<string, number>();
+  for (const c of casos) {
+    if (c.status === "finalizado") cancelados++;
+    else if (c.status === "revertido") revertidos++;
+    else if (c.status === "downgrade") downgrades++;
+    else abertos++;
+    if (ENCERRADOS.includes(c.status as StatusRetencao)) {
+      for (const s of servicosCaso(c)) {
+        servEnc++;
+        if (s.cancelado) servCanc++;
+      }
+    }
+    if (c.motivo_api) motivos.set(c.motivo_api, (motivos.get(c.motivo_api) ?? 0) + 1);
+  }
+  const encerrados = cancelados + revertidos + downgrades;
+  return {
+    pedidos: casos.length,
+    cancelados,
+    revertidos,
+    downgrades,
+    retidos: revertidos + downgrades,
+    abertos,
+    encerrados,
+    taxaCancelamento: encerrados ? cancelados / encerrados : null,
+    taxaRetencao: encerrados ? (revertidos + downgrades) / encerrados : null,
+    churnServicos: servEnc ? servCanc / servEnc : null,
+    servicosCancelados: servCanc,
+    servicosEncerrados: servEnc,
+    motivos: [...motivos.entries()].sort((a, b) => b[1] - a[1]),
+  };
+}
+
+/** Filtra pela data da solicitação (fim inclusivo até 23:59). */
+export function noIntervalo<T extends { data_solicitacao: string }>(
+  casos: T[],
+  de: string | null,
+  ate: string | null,
+) {
+  const ini = de ? new Date(`${de}T00:00:00-03:00`).getTime() : -Infinity;
+  const fim = ate ? new Date(`${ate}T23:59:59.999-03:00`).getTime() : Infinity;
+  return casos.filter((c) => {
+    const t = new Date(c.data_solicitacao).getTime();
+    return t >= ini && t <= fim;
+  });
+}

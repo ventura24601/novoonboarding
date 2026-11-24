@@ -339,3 +339,99 @@ describe("análises", () => {
     expect(tendencia([5, 5, 5, 5].map((n) => ({ pedidos: n }) as never)).direcao).toBe("estavel");
   });
 });
+
+import {
+  casoDaLinha,
+  noIntervalo,
+  porPeriodoAnalise,
+  produtoDaLinha,
+  recortarLinha,
+  resumoRelatorio,
+} from "./retencao";
+
+describe("relatório por linha e período", () => {
+  const casos = [
+    {
+      data_solicitacao: "2026-11-10T10:00:00-03:00",
+      status: "finalizado",
+      motivo_api: "Preço Alto",
+      servicos: [
+        { nome: "Black", cancelado: true },
+        { nome: "Discador", cancelado: true },
+      ],
+    },
+    {
+      data_solicitacao: "2026-11-12T10:00:00-03:00",
+      status: "downgrade",
+      motivo_api: "Preço Alto",
+      servicos: [
+        { nome: "Marketing Pro Black", cancelado: false },
+        { nome: "Redes + IA (combo)", cancelado: true },
+      ],
+    },
+    {
+      data_solicitacao: "2026-10-01T10:00:00-03:00",
+      status: "revertido",
+      motivo_api: "Não usa o produto",
+      servicos: [{ nome: "Redes Sociais", cancelado: false }],
+    },
+    {
+      data_solicitacao: "2026-11-20T10:00:00-03:00",
+      status: "em_andamento",
+      motivo_api: null,
+      servicos: [{ nome: "Google", cancelado: false }],
+    },
+  ];
+  it("produtos da linha pelo nome (sem acento/maiúscula)", () => {
+    expect(produtoDaLinha("Marketing Pro BLACK", "black")).toBe(true);
+    expect(produtoDaLinha("Redes + IA (combo)", "redes")).toBe(true);
+    expect(produtoDaLinha("Discador", "redes")).toBe(false);
+    expect(casoDaLinha(casos[3]!, "black")).toBe(false);
+  });
+  it("recorta os casos e serviços da linha", () => {
+    const b = recortarLinha(casos, "black");
+    expect(b).toHaveLength(2);
+    expect(b[0]!.servicos).toEqual([{ nome: "Black", cancelado: true }]);
+    expect(recortarLinha(casos, null)).toHaveLength(4);
+  });
+  it("resumo do relatório", () => {
+    const r = resumoRelatorio(recortarLinha(casos, "black"));
+    expect(r).toMatchObject({
+      pedidos: 2,
+      cancelados: 1,
+      downgrades: 1,
+      retidos: 1,
+      servicosCancelados: 1,
+      servicosEncerrados: 2,
+    });
+    expect(r.churnServicos).toBeCloseTo(0.5);
+    expect(r.taxaCancelamento).toBeCloseTo(0.5);
+    expect(r.motivos[0]).toEqual(["Preço Alto", 2]);
+  });
+  it("intervalo de datas inclusivo", () => {
+    expect(noIntervalo(casos, "2026-11-10", "2026-11-12")).toHaveLength(2);
+    expect(noIntervalo(casos, null, "2026-10-31")).toHaveLength(1);
+    expect(noIntervalo(casos, null, null)).toHaveLength(4);
+  });
+  it("semanas e meses cobrindo o intervalo", () => {
+    const s = porPeriodoAnalise(
+      casos,
+      "semana",
+      new Date("2026-11-01T12:00:00-03:00"),
+      new Date("2026-11-24T12:00:00-03:00"),
+    );
+    expect(s.map((b) => b.rotulo)).toEqual(["26/10", "02/11", "09/11", "16/11", "23/11"]);
+    expect(s.find((b) => b.rotulo === "09/11")!.pedidos).toBe(2);
+    const m = porPeriodoAnalise(
+      casos,
+      "mes",
+      new Date("2026-09-15T12:00:00-03:00"),
+      new Date("2026-11-24T12:00:00-03:00"),
+    );
+    expect(m.map((b) => [b.rotulo, b.pedidos])).toEqual([
+      ["set/26", 0],
+      ["out/26", 1],
+      ["nov/26", 3],
+    ]);
+  });
+});
