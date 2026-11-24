@@ -938,6 +938,10 @@ export type Database = {
       retencao_casos: {
         Row: {
           anotacoes: Json
+          arquivado: boolean
+          arquivado_em: string | null
+          arquivado_motivo: string | null
+          arquivado_por: string | null
           cliente_nome: string | null
           created_at: string
           criado_por_nome: string | null
@@ -974,6 +978,10 @@ export type Database = {
         }
         Insert: {
           anotacoes?: Json
+          arquivado?: boolean
+          arquivado_em?: string | null
+          arquivado_motivo?: string | null
+          arquivado_por?: string | null
           cliente_nome?: string | null
           created_at?: string
           criado_por_nome?: string | null
@@ -1010,6 +1018,10 @@ export type Database = {
         }
         Update: {
           anotacoes?: Json
+          arquivado?: boolean
+          arquivado_em?: string | null
+          arquivado_motivo?: string | null
+          arquivado_por?: string | null
           cliente_nome?: string | null
           created_at?: string
           criado_por_nome?: string | null
@@ -1084,6 +1096,10 @@ export type Database = {
       retencao_casos_situacao: {
         Row: {
           anotacoes: Json | null
+          arquivado: boolean | null
+          arquivado_em: string | null
+          arquivado_motivo: string | null
+          arquivado_por: string | null
           cliente_nome: string | null
           contato_atrasado: boolean | null
           contato_feito_em: string | null

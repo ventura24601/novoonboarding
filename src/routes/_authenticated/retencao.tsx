@@ -17,6 +17,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   AlarmClock,
+  Archive,
+  ArchiveRestore,
   BarChart3,
   ChevronDown,
   ChevronUp,
@@ -115,6 +117,7 @@ const searchSchema = z.object({
   linha: z.enum(["redes", "black"]).optional(),
   produto: z.string().optional(),
   preenchidos: z.enum(["sim", "nao"]).optional(),
+  arquivados: z.boolean().optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/retencao")({
@@ -278,7 +281,16 @@ function Retencao() {
   const set = (p: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev) => ({ ...prev, ...p }), replace: true });
 
-  const casos = useMemo(() => data?.casos ?? [], [data]);
+  const todosCasos = useMemo(() => data?.casos ?? [], [data]);
+  const nArquivados = useMemo(() => todosCasos.filter((c) => c.arquivado).length, [todosCasos]);
+  // Arquivados nunca entram no dash; nas listas aparecem só com "Ver arquivados".
+  const verArquivados = !!busca.arquivados && visao !== "dash";
+  const casos = useMemo(
+    () => todosCasos.filter((c) => (verArquivados ? c.arquivado : !c.arquivado)),
+    [todosCasos, verArquivados],
+  );
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [arquivando, setArquivando] = useState<string[] | null>(null);
   const somentePreenchidos = busca.preenchidos ? busca.preenchidos === "sim" : visao === "dash";
   // Datas e produto valem para kanban, tabela e dash.
   const semFormFiltro = useMemo(
@@ -418,7 +430,21 @@ function Retencao() {
     );
   }
   const ultima = data?.ultima;
-  const caso = casos.find((c) => c.id === aberto) ?? null;
+  const caso = todosCasos.find((c) => c.id === aberto) ?? null;
+
+  async function desarquivar(ids: string[]) {
+    const { error } = await supabase
+      .from("retencao_casos")
+      .update({ arquivado: false })
+      .in("id", ids);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setSelecionados(new Set());
+    await recarregar();
+    toast.success(ids.length === 1 ? "Caso desarquivado." : `${ids.length} casos desarquivados.`);
+  }
 
   return (
     <div className="space-y-6">
@@ -913,6 +939,19 @@ function Retencao() {
               />
               Só formulários preenchidos
             </label>
+            <label
+              className="flex items-center gap-2 pb-2 text-sm"
+              title="Casos arquivados não entram nas métricas"
+            >
+              <Switch
+                checked={verArquivados}
+                onCheckedChange={(v) => {
+                  setSelecionados(new Set());
+                  set({ arquivados: v || undefined });
+                }}
+              />
+              Ver arquivados ({nArquivados})
+            </label>
             <label className="flex items-center gap-2 pb-2 text-sm">
               <Switch
                 checked={!!busca.atrasados}
@@ -1021,19 +1060,67 @@ function Retencao() {
               onContato={setContatoDe}
             />
           ) : (
-            <Tabela
-              casos={filtrados}
-              nomePessoa={nomePessoa}
-              onAbrir={setAberto}
-              onStatus={mudarStatus}
-              onContato={setContatoDe}
-            />
+            <>
+              {selecionados.size > 0 && (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-[#F5F3FF] px-4 py-2.5 text-sm">
+                  <b>
+                    {selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}
+                  </b>
+                  {verArquivados ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => desarquivar([...selecionados])}
+                    >
+                      <ArchiveRestore /> Desarquivar
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setArquivando([...selecionados])}
+                    >
+                      <Archive /> Arquivar
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => setSelecionados(new Set())}>
+                    Limpar seleção
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Arquivados saem das listas e das métricas e podem ser desarquivados depois.
+                  </span>
+                </div>
+              )}
+              <Tabela
+                selecionados={selecionados}
+                onSelecionar={setSelecionados}
+                casos={filtrados}
+                nomePessoa={nomePessoa}
+                onAbrir={setAberto}
+                onStatus={mudarStatus}
+                onContato={setContatoDe}
+              />
+            </>
           )}
         </>
       )}
 
+      {arquivando && (
+        <ArquivarDialog
+          ids={arquivando}
+          onClose={() => setArquivando(null)}
+          onFeito={async () => {
+            setArquivando(null);
+            setSelecionados(new Set());
+            setAberto(null);
+            await recarregar();
+          }}
+        />
+      )}
       {caso && (
         <PainelCaso
+          onArquivar={() => setArquivando([caso.id])}
+          onDesarquivar={() => desarquivar([caso.id])}
           caso={caso}
           pessoas={pessoas}
           todasTags={todasTags}
@@ -1330,12 +1417,16 @@ function CartaoCaso({
 }
 
 function Tabela({
+  selecionados,
+  onSelecionar,
   casos,
   nomePessoa,
   onAbrir,
   onStatus,
   onContato,
 }: {
+  selecionados: Set<string>;
+  onSelecionar: React.Dispatch<React.SetStateAction<Set<string>>>;
   casos: CasoOk[];
   nomePessoa: (id: string | null) => string | null;
   onAbrir: (id: string) => void;
@@ -1355,6 +1446,15 @@ function Tabela({
       <table className="w-full text-sm">
         <thead className="border-b bg-[#F8FAFC]">
           <tr>
+            <th className="w-8 px-3 py-2.5">
+              <Checkbox
+                aria-label="Selecionar todos"
+                checked={casos.length > 0 && casos.every((c) => selecionados.has(c.id))}
+                onCheckedChange={(v) =>
+                  onSelecionar(v ? new Set(casos.map((c) => c.id)) : new Set())
+                }
+              />
+            </th>
             {[
               "ID AppCRC",
               "Telefone",
@@ -1380,6 +1480,20 @@ function Tabela({
                 key={c.id}
                 className={`border-b last:border-0 hover:bg-[#FAFAFC] ${contagem(c).nivel === "atrasado" ? "bg-[#FFF7F7]" : ""}`}
               >
+                <td className="px-3 py-2.5">
+                  <Checkbox
+                    aria-label={`Selecionar ${c.id_appcrc ?? c.cliente_nome ?? "caso"}`}
+                    checked={selecionados.has(c.id)}
+                    onCheckedChange={(v) =>
+                      onSelecionar((atual) => {
+                        const n = new Set(atual);
+                        if (v) n.add(c.id);
+                        else n.delete(c.id);
+                        return n;
+                      })
+                    }
+                  />
+                </td>
                 <td className="px-3 py-2.5">
                   <button
                     type="button"
@@ -1595,6 +1709,8 @@ function ContatoDialog({
 }
 
 function PainelCaso({
+  onArquivar,
+  onDesarquivar,
   caso,
   pessoas,
   todasTags,
@@ -1603,6 +1719,8 @@ function PainelCaso({
   onStatus,
   recarregar,
 }: {
+  onArquivar: () => void;
+  onDesarquivar: () => void;
   caso: CasoOk;
   pessoas: { id: string; full_name: string | null; email: string | null }[];
   todasTags: string[];
@@ -1688,6 +1806,16 @@ function PainelCaso({
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 space-y-5 overflow-y-auto p-5">
+          {caso.arquivado && (
+            <div className="flex items-start gap-2 rounded-lg border bg-[#F8FAFC] px-3 py-2 text-sm text-[#475569]">
+              <Archive className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <b>Arquivado</b>
+                {caso.arquivado_em ? ` em ${dataHora(caso.arquivado_em)}` : ""}:{" "}
+                {caso.arquivado_motivo}. Não entra nas listas nem nas métricas.
+              </span>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <Prazo caso={caso} />
             {caso.prazo_resolucao && caso.status === "em_andamento" && (
@@ -1770,6 +1898,20 @@ function PainelCaso({
             )}
           </div>
           <div className="flex gap-2">
+            {caso.arquivado ? (
+              <Button variant="outline" onClick={onDesarquivar}>
+                <ArchiveRestore /> Desarquivar
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={onArquivar}
+                title="Tira o caso das listas e das métricas"
+              >
+                <Archive /> Arquivar
+              </Button>
+            )}
             <Button className="flex-1" onClick={onContato}>
               <PhoneCall /> Registrar contato
             </Button>
@@ -1944,5 +2086,81 @@ function Info({ rotulo, children }: { rotulo: string; children: React.ReactNode 
       <div className="filter-label">{rotulo}</div>
       <div className="mt-0.5">{children}</div>
     </div>
+  );
+}
+
+const MOTIVOS_ARQUIVO = [
+  "Pedido duplicado",
+  "Teste",
+  "Aberto por engano",
+  "Fora do escopo da retenção",
+];
+
+function ArquivarDialog({
+  ids,
+  onClose,
+  onFeito,
+}: {
+  ids: string[];
+  onClose: () => void;
+  onFeito: () => Promise<void>;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  async function arquivar() {
+    setSalvando(true);
+    const { error } = await supabase
+      .from("retencao_casos")
+      .update({ arquivado: true, arquivado_motivo: motivo.trim() })
+      .in("id", ids);
+    setSalvando(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(ids.length === 1 ? "Caso arquivado." : `${ids.length} casos arquivados.`);
+    await onFeito();
+  }
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Arquivar {ids.length === 1 ? "caso" : `${ids.length} casos`}</DialogTitle>
+          <DialogDescription>
+            Sai das listas e das métricas, mas continua salvo. Dá para desarquivar em “Ver
+            arquivados”.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {MOTIVOS_ARQUIVO.map((m) => (
+              <Button
+                key={m}
+                size="sm"
+                variant={motivo === m ? "dark" : "outline"}
+                onClick={() => setMotivo(m)}
+              >
+                {m}
+              </Button>
+            ))}
+          </div>
+          <Textarea
+            rows={2}
+            maxLength={300}
+            placeholder="Motivo"
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button variant="dark" onClick={arquivar} disabled={!motivo.trim() || salvando}>
+            <Archive /> Arquivar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
