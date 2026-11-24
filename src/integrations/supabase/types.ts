@@ -937,72 +937,111 @@ export type Database = {
       }
       retencao_casos: {
         Row: {
+          anotacoes: Json
           cliente_nome: string | null
           created_at: string
+          criado_por_nome: string | null
           dados: Json
+          data_finalizacao: string | null
+          data_preenchimento: string | null
           data_solicitacao: string
           em_andamento_desde: string | null
           email: string | null
           encerrado_em: string | null
+          finalizado_por_nome: string | null
           formulario_preenchido: boolean | null
           id: string
           id_appcrc: string | null
+          link: string | null
           motivo_api: string | null
+          motivo_detalhe: string | null
           observacao: string | null
           origem_id: string
           prazo_resolucao: string | null
+          primeiro_contato_api: string | null
           primeiro_contato_em: string | null
           responsavel_id: string | null
+          servicos: Json
+          servicos_restantes: string | null
           sincronizado_em: string
+          solicitante: string | null
           status: string
+          status_api: string | null
           tags: string[]
           telefone: string | null
+          tipo_finalizacao: string | null
           updated_at: string
         }
         Insert: {
+          anotacoes?: Json
           cliente_nome?: string | null
           created_at?: string
+          criado_por_nome?: string | null
           dados?: Json
+          data_finalizacao?: string | null
+          data_preenchimento?: string | null
           data_solicitacao: string
           em_andamento_desde?: string | null
           email?: string | null
           encerrado_em?: string | null
+          finalizado_por_nome?: string | null
           formulario_preenchido?: boolean | null
           id?: string
           id_appcrc?: string | null
+          link?: string | null
           motivo_api?: string | null
+          motivo_detalhe?: string | null
           observacao?: string | null
           origem_id: string
           prazo_resolucao?: string | null
+          primeiro_contato_api?: string | null
           primeiro_contato_em?: string | null
           responsavel_id?: string | null
+          servicos?: Json
+          servicos_restantes?: string | null
           sincronizado_em?: string
+          solicitante?: string | null
           status?: string
+          status_api?: string | null
           tags?: string[]
           telefone?: string | null
+          tipo_finalizacao?: string | null
           updated_at?: string
         }
         Update: {
+          anotacoes?: Json
           cliente_nome?: string | null
           created_at?: string
+          criado_por_nome?: string | null
           dados?: Json
+          data_finalizacao?: string | null
+          data_preenchimento?: string | null
           data_solicitacao?: string
           em_andamento_desde?: string | null
           email?: string | null
           encerrado_em?: string | null
+          finalizado_por_nome?: string | null
           formulario_preenchido?: boolean | null
           id?: string
           id_appcrc?: string | null
+          link?: string | null
           motivo_api?: string | null
+          motivo_detalhe?: string | null
           observacao?: string | null
           origem_id?: string
           prazo_resolucao?: string | null
+          primeiro_contato_api?: string | null
           primeiro_contato_em?: string | null
           responsavel_id?: string | null
+          servicos?: Json
+          servicos_restantes?: string | null
           sincronizado_em?: string
+          solicitante?: string | null
           status?: string
+          status_api?: string | null
           tags?: string[]
           telefone?: string | null
+          tipo_finalizacao?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1044,30 +1083,44 @@ export type Database = {
     Views: {
       retencao_casos_situacao: {
         Row: {
+          anotacoes: Json | null
           cliente_nome: string | null
           contato_atrasado: boolean | null
+          contato_feito_em: string | null
           created_at: string | null
+          criado_por_nome: string | null
           dados: Json | null
+          data_finalizacao: string | null
+          data_preenchimento: string | null
           data_solicitacao: string | null
           dias_uteis_restantes: number | null
           em_andamento_desde: string | null
           email: string | null
           encerrado_em: string | null
+          finalizado_por_nome: string | null
           formulario_preenchido: boolean | null
           id: string | null
           id_appcrc: string | null
+          link: string | null
           motivo_api: string | null
+          motivo_detalhe: string | null
           observacao: string | null
           origem_id: string | null
           prazo_atrasado: boolean | null
           prazo_contato: string | null
           prazo_resolucao: string | null
+          primeiro_contato_api: string | null
           primeiro_contato_em: string | null
           responsavel_id: string | null
+          servicos: Json | null
+          servicos_restantes: string | null
           sincronizado_em: string | null
+          solicitante: string | null
           status: string | null
+          status_api: string | null
           tags: string[] | null
           telefone: string | null
+          tipo_finalizacao: string | null
           updated_at: string | null
         }
         Relationships: []

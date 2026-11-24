@@ -1,11 +1,17 @@
 /**
- * Coleta dos pedidos de cancelamento na API de gestão e gravação em retencao_casos.
- * Usado pela função agendada do Netlify (2x por dia) e pelo botão "Sincronizar agora".
+ * Coleta dos pedidos de cancelamento na API de gestão (cancelamentoServicos/listarExterno) e gravação em
+ * retencao_casos. Usado pela função agendada do Netlify (2x por dia) e pelo botão "Sincronizar agora".
  * Sem imports com "@/": este arquivo também é empacotado na função agendada.
  *
- * O formato da resposta da API ainda não foi confirmado: `normalizarRegistro` aceita os nomes mais prováveis
- * de cada campo (sem diferenciar maiúsculas, acentos, "_" ou espaços). Ajuste aqui se a API usar outros nomes.
+ * Formato da API (lista de objetos): id_solicitacao_cancelamento, id_cliente, nome, data_criacao ("dd/mm/aaaa hh:mm:ss"),
+ * descricao_status (Pendente | Não Iniciado | Em Andamento | Finalizado), tipo_finalizacao (C cancelou, D downgrade,
+ * X nenhum serviço cancelado), telefone_contato, nome_solicitante, descricao_motivo, descricao_detalhada,
+ * data_preenchimento, data_finalizacao, nome_finalizou, downgrade, servicos_restantes,
+ * servicos_solicitados_cancelamento [{nome_servico, cancelado}], anotacoes (JSON em texto), link.
  */
+
+export type StatusApi =
+  "nao_iniciado" | "pendente" | "em_andamento" | "revertido" | "downgrade" | "finalizado";
 
 export type CasoApi = {
   origem_id: string;
@@ -13,136 +19,147 @@ export type CasoApi = {
   cliente_nome: string | null;
   telefone: string | null;
   email: string | null;
+  solicitante: string | null;
+  criado_por_nome: string | null;
+  finalizado_por_nome: string | null;
   motivo_api: string | null;
+  motivo_detalhe: string | null;
   data_solicitacao: string;
-  formulario_preenchido: boolean | null;
+  data_preenchimento: string | null;
+  data_finalizacao: string | null;
+  formulario_preenchido: boolean;
+  status_api: StatusApi;
+  tipo_finalizacao: string | null;
+  servicos: { nome: string; cancelado: boolean }[];
+  servicos_restantes: string | null;
+  anotacoes: { nome: string | null; data: string | null; texto: string }[];
+  primeiro_contato_api: string | null;
+  link: string | null;
   dados: Record<string, unknown>;
 };
 
-const chaveNorm = (k: string) =>
-  k
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
-
-function campo(r: Record<string, unknown>, nomes: string[]): unknown {
-  const mapa = new Map(Object.entries(r).map(([k, v]) => [chaveNorm(k), v]));
-  for (const n of nomes) {
-    const v = mapa.get(chaveNorm(n));
-    if (
-      v !== undefined &&
-      v !== null &&
-      String(v).trim() !== "" &&
-      !/^null$/i.test(String(v).trim())
-    )
-      return v;
-  }
-  return null;
-}
-const texto = (v: unknown) => (v == null ? null : String(v).trim().slice(0, 300) || null);
-
-/** "2026-11-20", "2026-11-20 14:30:00", "20/11/2026", "20/11/2026 14:30" → ISO. */
-export function lerData(v: unknown): string | null {
+const texto = (v: unknown, max = 500) => {
   if (v == null) return null;
   const s = String(v).trim();
+  return s && !/^null$/i.test(s) ? s.slice(0, max) : null;
+};
+
+/** "30/07/2026 18:53:54" (horário de Brasília), "2026-08-05T10:57:42" (sem fuso = Brasília) ou ISO com fuso → ISO UTC. */
+export function lerData(v: unknown): string | null {
+  const s = texto(v, 40);
+  if (!s) return null;
   const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
   if (br) {
     const [, d, m, a, h = "00", mi = "00", se = "00"] = br;
     return new Date(`${a}-${m}-${d}T${h}:${mi}:${se}-03:00`).toISOString();
   }
-  const iso = s.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}(?::\d{2})?))?(.*)$/);
+  const iso = s.match(
+    /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}(?::\d{2})?)(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/,
+  );
   if (iso) {
-    const resto = iso[3] ?? "";
-    const temFuso = /Z|[+-]\d{2}:?\d{2}$/.test(resto);
-    const d = new Date(
-      `${iso[1]}T${iso[2] ?? "00:00:00"}${temFuso ? resto.replace(/^\.\d+/, "") : "-03:00"}`,
-    );
+    const d = new Date(`${iso[1]}T${iso[2] ?? "00:00:00"}${iso[4] ?? "-03:00"}`);
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
   }
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
-function booleano(v: unknown): boolean | null {
-  if (v == null) return null;
-  if (typeof v === "boolean") return v;
-  const s = String(v).trim().toLowerCase();
-  if (["1", "true", "sim", "s", "yes", "preenchido"].includes(s)) return true;
-  if (["0", "false", "nao", "não", "n", "no", "pendente"].includes(s)) return false;
   return null;
 }
 
+const semAcento = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase()
+    .trim();
+
+/** Status da API → status da Central. */
+export function statusDaApi(
+  descricao: unknown,
+  tipoFinalizacao: unknown,
+  downgrade: unknown,
+): StatusApi {
+  const d = semAcento(String(descricao ?? ""));
+  if (d.startsWith("pendente")) return "pendente";
+  if (d.startsWith("nao iniciado")) return "nao_iniciado";
+  if (d.startsWith("em andamento")) return "em_andamento";
+  if (d.startsWith("finalizado")) {
+    const t = String(tipoFinalizacao ?? "")
+      .trim()
+      .toUpperCase();
+    if (t === "D" || downgrade === true) return "downgrade";
+    if (t === "X") return "revertido";
+    return "finalizado";
+  }
+  return "nao_iniciado";
+}
+
+function lerAnotacoes(v: unknown) {
+  let lista: unknown = v;
+  if (typeof v === "string") {
+    try {
+      lista = JSON.parse(v);
+    } catch {
+      return [];
+    }
+  }
+  if (!Array.isArray(lista)) return [];
+  return lista
+    .map((a) => {
+      const o = (a && typeof a === "object" ? a : {}) as Record<string, unknown>;
+      return {
+        nome: texto(o["nome"], 120),
+        data: lerData(o["data_anotacao"]),
+        texto: texto(o["texto"], 2000) ?? "",
+      };
+    })
+    .filter((a) => a.texto || a.data)
+    .sort((a, b) => (a.data ?? "").localeCompare(b.data ?? ""));
+}
+
 export function normalizarRegistro(r: Record<string, unknown>): CasoApi | null {
-  const idAppcrc = texto(
-    campo(r, ["idappcrc", "id_appcrc", "id_cliente_appcrc", "appcrc", "cliente_appcrc"]),
-  );
-  const telefone = texto(
-    campo(r, ["telefone", "whatsapp", "celular", "fone", "contato", "telefone_cliente"]),
-  );
-  const data = lerData(
-    campo(r, [
-      "data_solicitacao_cancelamento",
-      "data_solicitacao",
-      "datasolicitacao",
-      "data_cancelamento",
-      "data_pedido",
-      "dt_solicitacao",
-      "data",
-      "created_at",
-      "criado_em",
-      "data_cadastro",
-    ]),
-  );
-  const idOrigem = texto(
-    campo(r, ["id", "id_cancelamento", "idcancelamento", "id_solicitacao", "codigo", "protocolo"]),
-  );
-  if (!data || (!idAppcrc && !telefone && !idOrigem)) return null;
+  const id = texto(r["id_solicitacao_cancelamento"]) ?? texto(r["uuid"]);
+  const data = lerData(r["data_criacao"]);
+  if (!id || !data) return null;
+  const anotacoes = lerAnotacoes(r["anotacoes"]);
+  const servicos = Array.isArray(r["servicos_solicitados_cancelamento"])
+    ? (r["servicos_solicitados_cancelamento"] as Record<string, unknown>[]).map((s) => ({
+        nome: texto(s?.["nome_servico"], 120) ?? "Serviço",
+        cancelado: s?.["cancelado"] === true,
+      }))
+    : [];
+  const preenchimento = lerData(r["data_preenchimento"]);
   return {
-    origem_id: idOrigem ?? `${idAppcrc ?? telefone}|${data}`,
-    id_appcrc: idAppcrc,
-    cliente_nome: texto(
-      campo(r, ["nome", "cliente", "nome_cliente", "razao_social", "clinica", "nome_fantasia"]),
-    ),
-    telefone,
-    email: texto(campo(r, ["email", "e_mail", "email_cliente"]))?.toLowerCase() ?? null,
-    motivo_api: texto(
-      campo(r, ["motivo", "motivo_cancelamento", "observacao", "descricao", "servico", "servicos"]),
-    ),
+    origem_id: id,
+    id_appcrc: texto(r["id_cliente"]),
+    cliente_nome: texto(r["nome"], 200),
+    telefone: texto(r["telefone_contato"], 40),
+    email: texto(r["email"])?.toLowerCase() ?? null,
+    solicitante: texto(r["nome_solicitante"], 120),
+    criado_por_nome: texto(r["nome_criador"], 120),
+    finalizado_por_nome: texto(r["nome_finalizou"], 120),
+    motivo_api: texto(r["descricao_motivo"], 200),
+    motivo_detalhe: texto(r["descricao_detalhada"], 4000),
     data_solicitacao: data,
-    formulario_preenchido: booleano(
-      campo(r, [
-        "formulario_preenchido",
-        "preencheu_formulario",
-        "formulario",
-        "status_formulario",
-      ]),
-    ),
+    data_preenchimento: preenchimento,
+    data_finalizacao: lerData(r["data_finalizacao"]),
+    formulario_preenchido: !!preenchimento,
+    status_api: statusDaApi(r["descricao_status"], r["tipo_finalizacao"], r["downgrade"]),
+    tipo_finalizacao: texto(r["tipo_finalizacao"], 5),
+    servicos,
+    servicos_restantes: texto(r["servicos_restantes"], 500),
+    anotacoes,
+    primeiro_contato_api: anotacoes.find((a) => a.data)?.data ?? null,
+    link: texto(r["link"], 300),
     dados: r,
   };
 }
 
-/** A lista pode vir direto ou dentro de data/dados/registros/result/items. */
+/** A lista vem direto (array) ou dentro de data/dados/registros. */
 export function extrairLista(json: unknown): Record<string, unknown>[] | null {
   if (Array.isArray(json))
     return json.filter((x) => x && typeof x === "object") as Record<string, unknown>[];
   if (json && typeof json === "object") {
-    for (const k of [
-      "data",
-      "dados",
-      "registros",
-      "result",
-      "resultado",
-      "items",
-      "lista",
-      "cancelamentos",
-    ]) {
+    for (const k of ["data", "dados", "registros", "result", "items"]) {
       const v = (json as Record<string, unknown>)[k];
       if (Array.isArray(v)) return extrairLista(v);
-      if (v && typeof v === "object") {
-        const dentro = extrairLista(v);
-        if (dentro) return dentro;
-      }
     }
   }
   return null;
@@ -164,7 +181,10 @@ type Ambiente = {
   fetch?: typeof fetch;
 };
 
-/** Coleta tudo (datas nulas), insere os novos como "não iniciado" e atualiza só os dados da API dos existentes. */
+/**
+ * Coleta tudo (datas nulas). Novos entram com o status da API. Existentes: atualiza os dados da API e só troca
+ * o status quando o status da API mudou desde a última coleta — assim o que o CS mudou aqui não é desfeito.
+ */
 export async function sincronizarRetencao(
   amb: Ambiente,
   origem: "agendado" | "manual",
@@ -196,47 +216,59 @@ export async function sincronizarRetencao(
     const casos = lista.map(normalizarRegistro).filter((c): c is CasoApi => !!c);
     res.recebidos = lista.length;
 
-    const existentes = new Set<string>();
-    for (let i = 0; i < casos.length; i += 200) {
+    const anterior = new Map<string, string | null>();
+    for (let i = 0; i < casos.length; i += 150) {
       const ids = casos
-        .slice(i, i + 200)
+        .slice(i, i + 150)
         .map((c) => `"${c.origem_id.replace(/"/g, '\\"')}"`)
         .join(",");
       const q = await f(
-        `${rest}/retencao_casos?select=origem_id&origem_id=in.(${encodeURIComponent(ids)})`,
+        `${rest}/retencao_casos?select=origem_id,status_api&origem_id=in.(${encodeURIComponent(ids)})`,
         { headers: h },
       );
       if (!q.ok) throw new Error(`Supabase: ${await q.text()}`);
-      for (const x of (await q.json()) as { origem_id: string }[]) existentes.add(x.origem_id);
+      for (const x of (await q.json()) as { origem_id: string; status_api: string | null }[])
+        anterior.set(x.origem_id, x.status_api);
     }
     const agora = new Date().toISOString();
     const novos = casos
-      .filter((c) => !existentes.has(c.origem_id))
-      .map((c) => ({ ...c, status: "nao_iniciado", sincronizado_em: agora }));
-    const antigos = casos
-      .filter((c) => existentes.has(c.origem_id))
+      .filter((c) => !anterior.has(c.origem_id))
+      .map((c) => ({ ...c, status: c.status_api, sincronizado_em: agora }));
+    const mudaram = casos
+      .filter((c) => anterior.has(c.origem_id) && anterior.get(c.origem_id) !== c.status_api)
+      .map((c) => ({ ...c, status: c.status_api, sincronizado_em: agora }));
+    const iguais = casos
+      .filter((c) => anterior.has(c.origem_id) && anterior.get(c.origem_id) === c.status_api)
       .map((c) => ({ ...c, sincronizado_em: agora }));
-    for (let i = 0; i < novos.length; i += 500) {
-      const w = await f(`${rest}/retencao_casos`, {
-        method: "POST",
-        headers: { ...h, Prefer: "return=minimal" },
-        body: JSON.stringify(novos.slice(i, i + 500)),
-      });
-      if (!w.ok) throw new Error(`Supabase (novos): ${await w.text()}`);
-    }
-    for (let i = 0; i < antigos.length; i += 500) {
-      const w = await f(`${rest}/retencao_casos?on_conflict=origem_id`, {
-        method: "POST",
-        headers: { ...h, Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(antigos.slice(i, i + 500)),
-      });
-      if (!w.ok) throw new Error(`Supabase (atualização): ${await w.text()}`);
-    }
+
+    const enviar = async (url: string, linhas: object[], prefer: string, rotulo: string) => {
+      for (let i = 0; i < linhas.length; i += 200) {
+        const w = await f(url, {
+          method: "POST",
+          headers: { ...h, Prefer: prefer },
+          body: JSON.stringify(linhas.slice(i, i + 200)),
+        });
+        if (!w.ok) throw new Error(`Supabase (${rotulo}): ${(await w.text()).slice(0, 300)}`);
+      }
+    };
+    await enviar(`${rest}/retencao_casos`, novos, "return=minimal", "novos");
+    await enviar(
+      `${rest}/retencao_casos?on_conflict=origem_id`,
+      mudaram,
+      "resolution=merge-duplicates,return=minimal",
+      "status alterado",
+    );
+    await enviar(
+      `${rest}/retencao_casos?on_conflict=origem_id`,
+      iguais,
+      "resolution=merge-duplicates,return=minimal",
+      "atualização",
+    );
     res = {
       ok: true,
       recebidos: lista.length,
       novos: novos.length,
-      atualizados: antigos.length,
+      atualizados: mudaram.length + iguais.length,
       erro: null,
     };
   } catch (e) {

@@ -84,6 +84,7 @@ const searchSchema = z.object({
   visao: z.enum(["kanban", "tabela"]).optional(),
   status: z.string().optional(),
   tag: z.string().optional(),
+  motivo: z.string().optional(),
   resp: z.string().optional(),
   atrasados: z.boolean().optional(),
   periodo: z.enum(["30", "90", "tudo"]).optional(),
@@ -98,6 +99,8 @@ export const Route = createFileRoute("/_authenticated/retencao")({
 type Caso = Database["public"]["Views"]["retencao_casos_situacao"]["Row"];
 type CasoOk = Caso & { id: string; status: string; data_solicitacao: string; tags: string[] };
 const TODOS = "__todos__";
+const servicosDe = (c: { servicos?: unknown }) =>
+  (Array.isArray(c.servicos) ? c.servicos : []) as { nome: string; cancelado: boolean }[];
 const dataHora = (d: string | null) =>
   d ? format(parseISO(d), "dd/MM/yyyy HH:mm", { locale: ptBR }) : "—";
 const dataBR = (d: string | null) =>
@@ -153,18 +156,28 @@ function Retencao() {
     return doPeriodo.filter((c) => {
       if (busca.status && c.status !== busca.status) return false;
       if (busca.tag && !c.tags.includes(busca.tag)) return false;
+      if (busca.motivo && c.motivo_api !== busca.motivo) return false;
       if (busca.resp && (busca.resp === "sem" ? c.responsavel_id : c.responsavel_id !== busca.resp))
         return false;
       if (busca.atrasados && contagem(c).nivel !== "atrasado") return false;
       if (!t) return true;
       return (
-        [c.id_appcrc, c.cliente_nome, c.email].some((x) => x?.toLowerCase().includes(t)) ||
+        [c.id_appcrc, c.cliente_nome, c.email, c.solicitante].some((x) =>
+          x?.toLowerCase().includes(t),
+        ) ||
         (d.length >= 3 && soDigitos(c.telefone).includes(d))
       );
     });
   }, [doPeriodo, q, busca]);
   const m = useMemo(() => metricas(doPeriodo), [doPeriodo]);
   const semanas = useMemo(() => porSemana(doPeriodo, 8), [doPeriodo]);
+  const todosMotivos = useMemo(
+    () =>
+      [...new Set(casos.map((c) => c.motivo_api).filter((x): x is string => !!x))].sort((a, b) =>
+        a.localeCompare(b, "pt-BR"),
+      ),
+    [casos],
+  );
   const todasTags = useMemo(
     () =>
       [...new Set([...TAGS_SUGERIDAS, ...casos.flatMap((c) => c.tags)])].sort((a, b) =>
@@ -407,13 +420,32 @@ function Retencao() {
             </div>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-card">
-            <div className="filter-label">Motivos (tags)</div>
-            {m.tags.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-foreground">
-                Marque tags nos casos para ver os motivos mais comuns.
-              </p>
-            ) : (
-              <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="filter-label">Motivos do cancelamento</div>
+            <div className="mt-3 space-y-1.5">
+              {m.motivos.length === 0 && (
+                <p className="text-xs text-muted-foreground">Sem motivos informados.</p>
+              )}
+              {m.motivos.slice(0, 6).map(([t, n]) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => set({ motivo: busca.motivo === t ? undefined : t })}
+                  className={`flex w-full items-center gap-2 rounded px-1 text-left text-xs hover:bg-[#F8FAFC] ${busca.motivo === t ? "bg-[#F8FAFC] font-semibold" : ""}`}
+                  title={t}
+                >
+                  <span className="w-40 truncate">{t}</span>
+                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+                    <span
+                      className="block h-full rounded-full bg-[#F59E0B]"
+                      style={{ width: `${(n / Math.max(1, m.motivos[0]![1])) * 100}%` }}
+                    />
+                  </span>
+                  <span className="w-6 text-right tabular-nums">{n}</span>
+                </button>
+              ))}
+            </div>
+            {m.tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
                 {m.tags.map(([t, n]) => (
                   <button
                     key={t}
@@ -450,12 +482,18 @@ function Retencao() {
             <Input
               id="br"
               className="pl-8"
-              placeholder="ID AppCRC, telefone ou nome"
+              placeholder="ID AppCRC, telefone, clínica ou solicitante"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
         </div>
+        <Filtro
+          rotulo="Motivo"
+          valor={busca.motivo}
+          onChange={(v) => set({ motivo: v })}
+          opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
+        />
         <Filtro
           rotulo="Status"
           valor={busca.status}
@@ -494,7 +532,7 @@ function Retencao() {
           />{" "}
           Só atrasados
         </label>
-        {(busca.status || busca.tag || busca.resp || busca.atrasados || q) && (
+        {(busca.status || busca.tag || busca.motivo || busca.resp || busca.atrasados || q) && (
           <Button
             variant="ghost"
             size="sm"
@@ -769,9 +807,29 @@ function CartaoCaso({
         {caso.cliente_nome && (
           <div className="truncate text-xs text-[#334155]">{caso.cliente_nome}</div>
         )}
+        {caso.motivo_api && (
+          <div
+            className="mt-1 truncate text-[11px] font-medium text-[#B45309]"
+            title={caso.motivo_api}
+          >
+            {caso.motivo_api}
+          </div>
+        )}
         <div className="mt-1 text-[11px] text-muted-foreground">
           Solicitado {dataHora(caso.data_solicitacao)}
         </div>
+        {servicosDe(caso).length > 0 && (
+          <div
+            className="mt-1 truncate text-[10px] text-muted-foreground"
+            title={servicosDe(caso)
+              .map((x) => x.nome)
+              .join(", ")}
+          >
+            {servicosDe(caso)
+              .map((x) => x.nome)
+              .join(" · ")}
+          </div>
+        )}
         <div className="mt-2">
           <Prazo caso={caso} compacto />
         </div>
@@ -842,6 +900,7 @@ function Tabela({
               "ID AppCRC",
               "Telefone",
               "Solicitado em",
+              "Motivo",
               "Status",
               "Prazo",
               "1º contato",
@@ -893,6 +952,18 @@ function Tabela({
                 <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">
                   {dataHora(c.data_solicitacao)}
                 </td>
+                <td className="max-w-[200px] px-3 py-2.5">
+                  <div className="truncate text-xs" title={c.motivo_api ?? ""}>
+                    {c.motivo_api ?? "—"}
+                  </div>
+                  {servicosDe(c).length > 0 && (
+                    <div className="truncate text-[10px] text-muted-foreground">
+                      {servicosDe(c)
+                        .map((x) => x.nome)
+                        .join(", ")}
+                    </div>
+                  )}
+                </td>
                 <td className="px-3 py-2.5">
                   <Select value={c.status} onValueChange={(v) => onStatus(c, v as StatusRetencao)}>
                     <SelectTrigger className="h-8 w-36 border-transparent bg-transparent px-1 hover:border-border">
@@ -911,10 +982,17 @@ function Tabela({
                   <Prazo caso={c} />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5">
-                  {c.primeiro_contato_em ? (
-                    <span className="text-xs text-muted-foreground">
-                      <b className="text-[#065F46]">✓</b> {dataHora(c.primeiro_contato_em)}
+                  {c.contato_feito_em ? (
+                    <span
+                      className="text-xs text-muted-foreground"
+                      title={
+                        c.primeiro_contato_em ? "Registrado na Central" : "1ª anotação na gestão"
+                      }
+                    >
+                      <b className="text-[#065F46]">✓</b> {dataHora(c.contato_feito_em)}
                     </span>
+                  ) : c.status === "pendente" ? (
+                    <span className="text-xs text-muted-foreground">Aguarda formulário</span>
                   ) : (
                     <Button
                       size="sm"
@@ -961,16 +1039,14 @@ function ContatoDialog({
   async function salvar() {
     if (!resultado || !meId) return;
     setSalvando(true);
-    const { error } = await supabase
-      .from("retencao_atividades")
-      .insert({
-        caso_id: caso.id,
-        tipo: "contato",
-        canal,
-        resultado,
-        texto: nota.trim() || null,
-        user_id: meId,
-      });
+    const { error } = await supabase.from("retencao_atividades").insert({
+      caso_id: caso.id,
+      tipo: "contato",
+      canal,
+      resultado,
+      texto: nota.trim() || null,
+      user_id: meId,
+    });
     if (error) {
       toast.error(error.message);
       setSalvando(false);
@@ -1113,9 +1189,32 @@ function PainelCaso({
     setNovaTag("");
   };
   const wa = linkWhatsapp(caso.telefone);
-  const dados = (
-    caso.dados && typeof caso.dados === "object" && !Array.isArray(caso.dados) ? caso.dados : {}
-  ) as Record<string, unknown>;
+  const servicos = servicosDe(caso);
+  const notasGestao = (Array.isArray(caso.anotacoes) ? caso.anotacoes : []) as {
+    nome: string | null;
+    data: string | null;
+    texto: string;
+  }[];
+  type Item = { chave: string; quando: string; no: React.ReactNode };
+  const historico: Item[] = [
+    ...notasGestao.map((n, i) => ({
+      chave: `g${i}`,
+      quando: n.data ?? "",
+      no: (
+        <li key={`g${i}`} className="flex gap-2.5 text-sm">
+          <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#FEF3C7] text-[#B45309]">
+            <MessageCircle className="h-3 w-3" />
+          </span>
+          <div className="min-w-0">
+            <div className="whitespace-pre-line break-words">{n.texto}</div>
+            <div className="text-[11px] text-muted-foreground">
+              Anotação na gestão · {n.nome ?? "—"} · {dataHora(n.data)}
+            </div>
+          </div>
+        </li>
+      ),
+    })),
+  ];
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()}>
@@ -1152,30 +1251,77 @@ function PainelCaso({
                 </a>
               )}
             </Info>
-            <Info rotulo="E-mail">{caso.email ?? "—"}</Info>
+            <Info rotulo="Solicitante">{caso.solicitante ?? "—"}</Info>
+            <Info rotulo="Formulário">
+              {caso.data_preenchimento
+                ? `Preenchido em ${dataHora(caso.data_preenchimento)}`
+                : "Não preenchido"}
+            </Info>
             <Info rotulo="1º contato">
-              {caso.primeiro_contato_em ? (
-                dataHora(caso.primeiro_contato_em)
+              {caso.contato_feito_em ? (
+                <>
+                  {dataHora(caso.contato_feito_em)}
+                  <span className="block text-[11px] text-muted-foreground">
+                    {caso.primeiro_contato_em ? "registrado na Central" : "1ª anotação na gestão"}
+                  </span>
+                </>
+              ) : caso.status === "pendente" ? (
+                "Aguardando formulário"
               ) : (
                 <span className="text-[#B91C1C]">Ainda não</span>
               )}
             </Info>
-            <Info rotulo="Formulário">
-              {caso.formulario_preenchido == null
-                ? "—"
-                : caso.formulario_preenchido
-                  ? "Preenchido"
-                  : "Não preenchido"}
-            </Info>
+            {caso.criado_por_nome && <Info rotulo="Aberto por">{caso.criado_por_nome}</Info>}
+            {caso.finalizado_por_nome && (
+              <Info rotulo="Finalizado por">
+                {caso.finalizado_por_nome} · {dataHora(caso.data_finalizacao)}
+              </Info>
+            )}
             {caso.motivo_api && (
               <div className="col-span-2">
-                <Info rotulo="Motivo informado">{caso.motivo_api}</Info>
+                <Info rotulo="Motivo">{caso.motivo_api}</Info>
+                {caso.motivo_detalhe && (
+                  <p className="mt-1 whitespace-pre-line rounded-md bg-[#F8FAFC] p-2 text-xs text-[#334155]">
+                    {caso.motivo_detalhe}
+                  </p>
+                )}
+              </div>
+            )}
+            {servicos.length > 0 && (
+              <div className="col-span-2">
+                <Info rotulo="Serviços no pedido">
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {servicos.map((x) => (
+                      <span
+                        key={x.nome}
+                        className={`rounded px-1.5 py-0.5 text-[11px] font-semibold ${x.cancelado ? "bg-[#FEE2E2] text-[#B91C1C] line-through" : "bg-[#F1F5F9] text-[#475569]"}`}
+                        title={x.cancelado ? "Cancelado" : "Mantido / em análise"}
+                      >
+                        {x.nome}
+                      </span>
+                    ))}
+                  </div>
+                </Info>
+                {caso.servicos_restantes && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Ficou com: <b className="text-foreground">{caso.servicos_restantes}</b>
+                  </p>
+                )}
               </div>
             )}
           </div>
-          <Button className="w-full" onClick={onContato}>
-            <PhoneCall /> Registrar contato
-          </Button>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={onContato}>
+              <PhoneCall /> Registrar contato
+            </Button>
+            {caso.link && (
+              <Button variant="outline" asChild>
+                <a href={caso.link} target="_blank" rel="noreferrer">
+                  Abrir na gestão
+                </a>
+              </Button>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <FilterLabel>Status</FilterLabel>
@@ -1276,63 +1422,57 @@ function PainelCaso({
           <div>
             <FilterLabel>Histórico</FilterLabel>
             <ul className="space-y-2.5">
-              {atividades.length === 0 && (
+              {atividades.length + notasGestao.length === 0 && (
                 <li className="text-xs text-muted-foreground">Nenhum contato registrado ainda.</li>
               )}
-              {atividades.map((a) => (
-                <li key={a.id} className="flex gap-2.5 text-sm">
-                  <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1F5F9] text-[#64748B]">
-                    {a.tipo === "contato" ? (
-                      <PhoneCall className="h-3 w-3" />
-                    ) : a.tipo === "status" ? (
-                      <RefreshCw className="h-3 w-3" />
-                    ) : (
-                      <UserRound className="h-3 w-3" />
-                    )}
-                  </span>
-                  <div className="min-w-0">
-                    <div>
-                      {a.tipo === "contato" && (
-                        <>
-                          <b>Contato</b> por{" "}
-                          {CANAIS.find((c) => c.id === a.canal)?.rotulo ?? a.canal}:{" "}
-                          {resultadoRotulo(a.resultado)}
-                        </>
-                      )}
-                      {a.tipo === "status" && (
-                        <>
-                          {statusRetencao(a.de ?? "").rotulo} →{" "}
-                          <b>{statusRetencao(a.para ?? "").rotulo}</b>
-                        </>
-                      )}
-                      {a.tipo === "nota" && a.texto}
-                    </div>
-                    {a.tipo === "contato" && a.texto && (
-                      <div className="text-xs text-[#475569]">“{a.texto}”</div>
-                    )}
-                    <div className="text-[11px] text-muted-foreground">
-                      {nome(a.user_id)} · {dataHora(a.created_at)}
-                    </div>
-                  </div>
-                </li>
-              ))}
+              {[
+                ...historico,
+                ...atividades.map((a) => ({
+                  chave: a.id,
+                  quando: a.created_at,
+                  no: (
+                    <li key={a.id} className="flex gap-2.5 text-sm">
+                      <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#F1F5F9] text-[#64748B]">
+                        {a.tipo === "contato" ? (
+                          <PhoneCall className="h-3 w-3" />
+                        ) : a.tipo === "status" ? (
+                          <RefreshCw className="h-3 w-3" />
+                        ) : (
+                          <UserRound className="h-3 w-3" />
+                        )}
+                      </span>
+                      <div className="min-w-0">
+                        <div>
+                          {a.tipo === "contato" && (
+                            <>
+                              <b>Contato</b> por{" "}
+                              {CANAIS.find((c) => c.id === a.canal)?.rotulo ?? a.canal}:{" "}
+                              {resultadoRotulo(a.resultado)}
+                            </>
+                          )}
+                          {a.tipo === "status" && (
+                            <>
+                              {statusRetencao(a.de ?? "").rotulo} →{" "}
+                              <b>{statusRetencao(a.para ?? "").rotulo}</b>
+                            </>
+                          )}
+                          {a.tipo === "nota" && a.texto}
+                        </div>
+                        {a.tipo === "contato" && a.texto && (
+                          <div className="text-xs text-[#475569]">“{a.texto}”</div>
+                        )}
+                        <div className="text-[11px] text-muted-foreground">
+                          {a.user_id ? nome(a.user_id) : "Coleta da API"} · {dataHora(a.created_at)}
+                        </div>
+                      </div>
+                    </li>
+                  ),
+                })),
+              ]
+                .sort((x, y) => y.quando.localeCompare(x.quando))
+                .map((x) => x.no)}
             </ul>
           </div>
-          {Object.keys(dados).length > 0 && (
-            <details className="text-xs">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-                Dados recebidos da API
-              </summary>
-              <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
-                {Object.entries(dados).map(([k, v]) => (
-                  <div key={k} className="flex gap-1">
-                    <dt className="text-muted-foreground">{k}:</dt>
-                    <dd className="truncate">{v == null ? "—" : String(v)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
-          )}
         </div>
       </SheetContent>
     </Sheet>

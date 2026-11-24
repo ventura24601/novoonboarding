@@ -106,6 +106,13 @@
       "when": 1793800014000,
       "tag": "0014_retencao",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793800015000,
+      "tag": "0015_retencao_formato_api",
+      "breakpoints": true
     }
   ]
 }

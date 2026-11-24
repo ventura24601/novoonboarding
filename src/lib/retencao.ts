@@ -99,7 +99,10 @@ export type CasoRetencao = {
   id: string;
   status: string;
   data_solicitacao: string;
-  primeiro_contato_em: string | null;
+  data_preenchimento?: string | null; // formulário preenchido = início das 48h
+  primeiro_contato_em: string | null; // contato registrado aqui
+  contato_feito_em?: string | null; // aqui ou 1ª anotação na gestão
+  motivo_api?: string | null;
   prazo_resolucao: string | null;
   dias_uteis_restantes: number | null;
   encerrado_em: string | null;
@@ -112,12 +115,25 @@ export type Contagem = {
   nivel: "ok" | "alerta" | "atrasado" | "neutro";
 };
 
+/** As 48h começam quando o formulário é preenchido (o caso vira "Não iniciado"). */
+export const inicio48h = (c: CasoRetencao) => c.data_preenchimento ?? c.data_solicitacao;
+/** 1º contato: registrado aqui ou primeira anotação feita na gestão. */
+export const feito = (c: CasoRetencao) => c.contato_feito_em ?? c.primeiro_contato_em;
+
 /** Contagem regressiva exibida no card e na tabela. */
 export function contagem(c: CasoRetencao, agora = new Date()): Contagem {
   if (ENCERRADOS.includes(c.status as StatusRetencao))
     return { tipo: null, texto: "Encerrado", nivel: "neutro" };
-  if (!c.primeiro_contato_em && (c.status === "nao_iniciado" || c.status === "pendente")) {
-    const prazo = new Date(c.data_solicitacao).getTime() + 48 * 3600_000;
+  if (c.status === "pendente") {
+    const dias = Math.floor((agora.getTime() - new Date(c.data_solicitacao).getTime()) / 86400_000);
+    return {
+      tipo: null,
+      texto: dias >= 1 ? `Aguardando formulário há ${dias}d` : "Aguardando formulário",
+      nivel: "neutro",
+    };
+  }
+  if (!feito(c) && c.status === "nao_iniciado") {
+    const prazo = new Date(inicio48h(c)).getTime() + 48 * 3600_000;
     const h = (prazo - agora.getTime()) / 3600_000;
     if (h < 0) {
       const atraso = -h;
@@ -148,8 +164,6 @@ export function contagem(c: CasoRetencao, agora = new Date()): Contagem {
       nivel: d <= 1 ? "alerta" : "ok",
     };
   }
-  if (c.status === "pendente")
-    return { tipo: null, texto: "Aguardando formulário", nivel: "neutro" };
   return { tipo: null, texto: "Contato feito", nivel: "ok" };
 }
 
@@ -165,15 +179,16 @@ export function metricas(casos: CasoRetencao[], agora = new Date()) {
     comContato = 0,
     contatoNoPrazo = 0;
   const tags = new Map<string, number>();
+  const motivos = new Map<string, number>();
   for (const c of casos) {
+    if (c.motivo_api) motivos.set(c.motivo_api, (motivos.get(c.motivo_api) ?? 0) + 1);
     if (c.status in por) por[c.status as StatusRetencao]++;
     const k = contagem(c, agora);
     if (k.nivel === "atrasado" && k.tipo === "contato") contatoAtrasado++;
     if (k.nivel === "atrasado" && k.tipo === "resolucao") prazoVencido++;
-    if (c.primeiro_contato_em) {
-      const h =
-        (new Date(c.primeiro_contato_em).getTime() - new Date(c.data_solicitacao).getTime()) /
-        3600_000;
+    const contato = feito(c);
+    if (contato) {
+      const h = (new Date(contato).getTime() - new Date(inicio48h(c)).getTime()) / 3600_000;
       horasAteContato += Math.max(0, h);
       comContato++;
       if (h <= 48) contatoNoPrazo++;
@@ -192,6 +207,7 @@ export function metricas(casos: CasoRetencao[], agora = new Date()) {
     mediaHorasContato: comContato ? horasAteContato / comContato : null,
     contatoNoPrazo: comContato ? contatoNoPrazo / comContato : null,
     tags: [...tags.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
+    motivos: [...motivos.entries()].sort((a, b) => b[1] - a[1]),
   };
 }
 
