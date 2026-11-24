@@ -612,3 +612,63 @@ export function servicosParaContagem(servicos: unknown): Servico[] {
   const out = [...porNome.values()];
   return out.length > 1 ? out.filter((s) => norm(s.nome) !== "discador") : out;
 }
+
+// ---------- Comparar produtos ----------
+
+export type ComparacaoProduto = {
+  produto: string;
+  pedidos: number;
+  encerrados: number;
+  cancelados: number;
+  mantidos: number;
+  abertos: number;
+  churn: number | null; // cancelados ÷ encerrados
+  participacao: number | null; // parte dos cancelamentos entre os produtos escolhidos
+};
+
+/**
+ * Cancelamentos de cada produto escolhido, no total e por semana/mês. Em cada pedido o produto conta
+ * como cancelado quando o pedido foi encerrado e o serviço foi cancelado; como mantido quando foi
+ * encerrado sem cancelar o serviço; e em aberto enquanto o pedido não foi encerrado.
+ */
+export function compararProdutos(
+  casos: CasoAnalise[],
+  produtos: string[],
+  tipo: "semana" | "mes",
+  inicio: Date | null = null,
+  fim: Date | null = null,
+  agora = new Date(),
+) {
+  const porProduto = produtos.map((produto) => {
+    // Status do produto no pedido: finalizado = cancelado, revertido = mantido, demais = em aberto.
+    const casosDoProduto = recortarProduto(casos, produto).map((c) => {
+      const encerrado = ENCERRADOS.includes(c.status as StatusRetencao);
+      const cancelado = servicosCaso(c).some((s) => s.cancelado);
+      return { ...c, status: !encerrado ? "aberto" : cancelado ? "finalizado" : "revertido" };
+    });
+    const buckets =
+      inicio && fim
+        ? porPeriodoAnalise(casosDoProduto, tipo, inicio, fim)
+        : agrupar(casosDoProduto, 12, tipo, agora);
+    const r = resumoRelatorio(casosDoProduto);
+    return { produto, buckets, r };
+  });
+  const totalCanc = porProduto.reduce((s, p) => s + p.r.cancelados, 0);
+  const resumo: ComparacaoProduto[] = porProduto.map(({ produto, r }) => ({
+    produto,
+    pedidos: r.pedidos,
+    encerrados: r.encerrados,
+    cancelados: r.cancelados,
+    mantidos: r.revertidos,
+    abertos: r.abertos,
+    churn: r.encerrados ? r.cancelados / r.encerrados : null,
+    participacao: totalCanc ? r.cancelados / totalCanc : null,
+  }));
+  const base = porProduto[0]?.buckets ?? [];
+  const serie = base.map((b, i) => {
+    const ponto: Record<string, string | number> = { rotulo: b.rotulo };
+    for (const p of porProduto) ponto[p.produto] = p.buckets[i]?.cancelados ?? 0;
+    return ponto;
+  });
+  return { resumo, serie };
+}

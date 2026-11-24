@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -21,6 +21,8 @@ import {
   ArchiveRestore,
   BarChart3,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   Download,
   Printer,
@@ -137,6 +139,7 @@ type CasoOk = Caso & {
   servicos_api?: unknown;
 };
 const TODOS = "__todos__";
+const POR_PAGINA = 50;
 const isoDia = (d: Date) =>
   new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const diasAtras = (n: number): [string, string] => {
@@ -370,6 +373,17 @@ function Retencao() {
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [semFormFiltro, busca.motivo, busca.tag, busca.linha, busca.produto, busca.abertos],
+  );
+  // Comparação entre produtos: mesmos filtros do dash, mas sem recortar linha/produto.
+  const paraComparar = useMemo(
+    () => {
+      const base = noIntervalo(casos, busca.de ?? null, busca.ate ?? null);
+      return (somentePreenchidos ? base.filter(formularioPreenchido) : base).filter(
+        (c) => porMotivoTag(c) && porAberto(c),
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [casos, busca.de, busca.ate, somentePreenchidos, busca.motivo, busca.tag, busca.abertos],
   );
   const intervalo = useMemo(() => {
     if (!busca.de && !busca.ate) return { inicio: null, fim: null };
@@ -885,6 +899,7 @@ function Retencao() {
           </div>
           <RetencaoAnalises
             casos={relatorio}
+            comparar={paraComparar}
             todos={relatorioTodos}
             somentePreenchidos={somentePreenchidos}
             inicio={intervalo.inicio}
@@ -1466,6 +1481,12 @@ function Tabela({
   onStatus: (c: CasoOk, s: StatusRetencao) => void;
   onContato: (c: CasoOk) => void;
 }) {
+  // 50 por página; volta para a 1ª página quando a lista filtrada muda de tamanho.
+  const [pagina, setPagina] = useState(0);
+  useEffect(() => setPagina(0), [casos.length]);
+  const totalPaginas = Math.max(1, Math.ceil(casos.length / POR_PAGINA));
+  const pg = Math.min(pagina, totalPaginas - 1);
+  const visiveis = casos.slice(pg * POR_PAGINA, pg * POR_PAGINA + POR_PAGINA);
   if (!casos.length)
     return (
       <EmptyState
@@ -1481,10 +1502,17 @@ function Tabela({
           <tr>
             <th className="w-8 px-3 py-2.5">
               <Checkbox
-                aria-label="Selecionar todos"
-                checked={casos.length > 0 && casos.every((c) => selecionados.has(c.id))}
+                aria-label="Selecionar todos desta página"
+                checked={visiveis.length > 0 && visiveis.every((c) => selecionados.has(c.id))}
                 onCheckedChange={(v) =>
-                  onSelecionar(v ? new Set(casos.map((c) => c.id)) : new Set())
+                  onSelecionar((atual) => {
+                    const n = new Set(atual);
+                    for (const c of visiveis) {
+                      if (v) n.add(c.id);
+                      else n.delete(c.id);
+                    }
+                    return n;
+                  })
                 }
               />
             </th>
@@ -1506,7 +1534,7 @@ function Tabela({
           </tr>
         </thead>
         <tbody>
-          {casos.map((c) => {
+          {visiveis.map((c) => {
             const wa = linkWhatsapp(c.telefone);
             return (
               <tr
@@ -1621,6 +1649,49 @@ function Tabela({
           })}
         </tbody>
       </table>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5 text-xs text-muted-foreground">
+        <span>
+          Mostrando {pg * POR_PAGINA + 1}–{Math.min(casos.length, (pg + 1) * POR_PAGINA)} de{" "}
+          {casos.length}
+        </span>
+        {totalPaginas > 1 && (
+          <div className="flex items-center gap-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7"
+              disabled={pg === 0}
+              onClick={() => setPagina(pg - 1)}
+            >
+              <ChevronLeft /> Anterior
+            </Button>
+            {Array.from({ length: totalPaginas }, (_, i) => i)
+              .filter((i) => i === 0 || i === totalPaginas - 1 || Math.abs(i - pg) <= 1)
+              .map((i, k, arr) => (
+                <span key={i} className="flex items-center gap-1">
+                  {k > 0 && i - arr[k - 1]! > 1 && <span className="px-1">…</span>}
+                  <Button
+                    size="sm"
+                    variant={i === pg ? "dark" : "ghost"}
+                    className="h-7 w-7 p-0"
+                    onClick={() => setPagina(i)}
+                  >
+                    {i + 1}
+                  </Button>
+                </span>
+              ))}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7"
+              disabled={pg >= totalPaginas - 1}
+              onClick={() => setPagina(pg + 1)}
+            >
+              Próxima <ChevronRight />
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

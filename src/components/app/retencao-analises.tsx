@@ -11,9 +11,12 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Info } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Info, Plus, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   churnPorProduto,
+  compararProdutos,
+  produtosDosPedidos,
   porMesAnalise,
   porPeriodoAnalise,
   porSemanaAnalise,
@@ -207,7 +210,241 @@ function Comparativo({ buckets, unidade }: { buckets: Bucket[]; unidade: "semana
   );
 }
 
+const CORES_PRODUTO = [
+  "#2563EB",
+  "#EF4444",
+  "#10B981",
+  "#F59E0B",
+  "#7C3AED",
+  "#0EA5E9",
+  "#DB2777",
+  "#64748B",
+];
+
+/** Escolher produtos e comparar os cancelamentos de cada um, no total e ao longo do tempo. */
+function CompararProdutos({
+  casos,
+  inicio,
+  fim,
+}: {
+  casos: CasoAnalise[];
+  inicio: Date | null;
+  fim: Date | null;
+}) {
+  const disponiveis = useMemo(() => produtosDosPedidos(casos), [casos]);
+  const [escolhidos, setEscolhidos] = useState<string[] | null>(null);
+  const [granularidade, setGranularidade] = useState<"semana" | "mes">("mes");
+  const [busca, setBusca] = useState("");
+  // Padrão: os 3 produtos mais pedidos; o que sair da lista (por filtro) deixa de ser comparado.
+  const selecionados = (escolhidos ?? disponiveis.slice(0, 3).map((p) => p.nome)).filter((n) =>
+    disponiveis.some((p) => p.nome === n),
+  );
+  const { resumo, serie } = useMemo(
+    () => compararProdutos(casos, selecionados, granularidade, inicio, fim),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [casos, selecionados.join("|"), granularidade, inicio, fim],
+  );
+  const cor = (n: string) => CORES_PRODUTO[selecionados.indexOf(n) % CORES_PRODUTO.length]!;
+  const alternar = (n: string) =>
+    setEscolhidos(
+      selecionados.includes(n) ? selecionados.filter((x) => x !== n) : [...selecionados, n],
+    );
+  const maxCanc = Math.max(1, ...resumo.map((r) => r.cancelados));
+  const opcoes = disponiveis.filter((p) =>
+    p.nome.toLowerCase().includes(busca.trim().toLowerCase()),
+  );
+
+  return (
+    <Cartao
+      titulo="Comparar cancelamentos entre produtos"
+      ajuda="Escolha os produtos para comparar. Cancelado = pedido encerrado com o serviço cancelado; mantido = encerrado sem cancelar o serviço. Segue os filtros de data, formulário, motivo, tag e Em aberto do dash."
+      acoes={
+        <div className="flex rounded-lg border bg-white p-0.5">
+          {(["semana", "mes"] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => setGranularidade(g)}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold ${granularidade === g ? "bg-[#111827] text-white" : "text-muted-foreground"}`}
+            >
+              {g === "semana" ? "Por semana" : "Por mês"}
+            </button>
+          ))}
+        </div>
+      }
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {selecionados.map((n) => (
+          <span
+            key={n}
+            className="inline-flex items-center gap-1.5 rounded-full border bg-white py-1 pl-2.5 pr-1 text-xs font-medium"
+          >
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cor(n) }} />
+            {n}
+            <button
+              type="button"
+              aria-label={`Remover ${n} da comparação`}
+              onClick={() => alternar(n)}
+              className="rounded-full p-0.5 text-muted-foreground hover:bg-[#F1F5F9]"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-dashed px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-[#F8FAFC]"
+            >
+              <Plus className="h-3 w-3" /> Selecionar produtos
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72 p-2">
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar produto…"
+              className="mb-2 h-8 w-full rounded-md border px-2 text-sm outline-none focus:ring-1"
+            />
+            <div className="max-h-64 overflow-y-auto">
+              {opcoes.map((p) => (
+                <label
+                  key={p.nome}
+                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[#F8FAFC]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selecionados.includes(p.nome)}
+                    onChange={() => alternar(p.nome)}
+                  />
+                  <span className="flex-1 truncate">{p.nome}</span>
+                  <span className="text-xs tabular-nums text-muted-foreground">{p.n}</span>
+                </label>
+              ))}
+              {!opcoes.length && (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum produto.</p>
+              )}
+            </div>
+            {selecionados.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setEscolhidos([])}
+                className="mt-2 w-full rounded-md border py-1 text-xs text-muted-foreground hover:bg-[#F8FAFC]"
+              >
+                Limpar seleção
+              </button>
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
+
+      {selecionados.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Selecione ao menos um produto.</p>
+      ) : (
+        <>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={serie} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF2F7" />
+                <XAxis
+                  dataKey="rotulo"
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "#64748B" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<DicaGrafico />} cursor={{ stroke: "#CBD5E1" }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+                {selecionados.map((n) => (
+                  <Line
+                    key={n}
+                    type="monotone"
+                    dataKey={n}
+                    name={n}
+                    stroke={cor(n)}
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="mb-3 mt-1 text-center text-[11px] text-muted-foreground">
+            Cancelamentos por {granularidade === "semana" ? "semana" : "mês"} (data da solicitação)
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="border-b">
+                <tr>
+                  {[
+                    "Produto",
+                    "Pedidos",
+                    "Cancelados",
+                    "Mantidos",
+                    "Em aberto",
+                    "Churn",
+                    "% dos cancelamentos",
+                  ].map((h) => (
+                    <th key={h} className="filter-label whitespace-nowrap px-2 py-2 text-left">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {resumo.map((r) => (
+                  <tr key={r.produto} className="border-b last:border-0">
+                    <td className="whitespace-nowrap px-2 py-2.5 font-medium">
+                      <span
+                        className="mr-2 inline-block h-2 w-2 rounded-full"
+                        style={{ backgroundColor: cor(r.produto) }}
+                      />
+                      {r.produto}
+                    </td>
+                    <td className="px-2 py-2.5 tabular-nums">{r.pedidos}</td>
+                    <td className="w-[28%] px-2 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${(r.cancelados / maxCanc) * 100}%`,
+                              backgroundColor: cor(r.produto),
+                            }}
+                          />
+                        </div>
+                        <b className="w-8 text-right tabular-nums text-[#B91C1C]">{r.cancelados}</b>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2.5 tabular-nums text-[#065F46]">{r.mantidos}</td>
+                    <td className="px-2 py-2.5 tabular-nums text-muted-foreground">{r.abertos}</td>
+                    <td className="px-2 py-2.5">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-xs font-bold tabular-nums ${r.churn == null ? "text-muted-foreground" : r.churn >= 0.7 ? "bg-[#FEE2E2] text-[#B91C1C]" : r.churn >= 0.4 ? "bg-[#FEF3C7] text-[#B45309]" : "bg-[#D1FAE5] text-[#065F46]"}`}
+                      >
+                        {pct(r.churn)}
+                      </span>
+                    </td>
+                    <td className="px-2 py-2.5 tabular-nums">{pct(r.participacao)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </Cartao>
+  );
+}
+
 export function RetencaoAnalises({
+  comparar,
   casos,
   todos,
   somentePreenchidos,
@@ -221,6 +458,7 @@ export function RetencaoAnalises({
   inicio: Date | null;
   fim: Date | null;
   linha: string | null; // rótulo da linha (Redes, Black) quando há recorte
+  comparar: CasoAnalise[]; // mesmos filtros do dash, sem o recorte de linha/produto
 }) {
   const [granularidade, setGranularidade] = useState<"semana" | "mes">("semana");
   // Com datas escolhidas, os períodos cobrem o intervalo; sem datas, últimas 12 semanas / 12 meses.
@@ -539,6 +777,8 @@ export function RetencaoAnalises({
           </div>
         )}
       </Cartao>
+
+      <CompararProdutos casos={comparar} inicio={inicio} fim={fim} />
     </div>
   );
 }

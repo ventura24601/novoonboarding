@@ -535,3 +535,64 @@ describe("regras de produto", () => {
     expect(servicosParaContagem([])).toEqual([]);
   });
 });
+
+describe("compararProdutos", () => {
+  const agora = new Date("2026-03-20T12:00:00-03:00");
+  const casos = [
+    {
+      data_solicitacao: "2026-03-18T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [
+        { nome: "Redes", cancelado: true },
+        { nome: "Site", cancelado: false },
+      ],
+    },
+    {
+      data_solicitacao: "2026-03-17T10:00:00-03:00",
+      status: "revertido",
+      servicos: [{ nome: "Redes", cancelado: false }],
+    },
+    {
+      data_solicitacao: "2026-02-10T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [{ nome: "Site", cancelado: true }],
+    },
+    {
+      data_solicitacao: "2026-03-19T10:00:00-03:00",
+      status: "em_andamento",
+      servicos: [{ nome: "Site", cancelado: true }],
+    },
+  ];
+  it("conta cancelados, mantidos e em aberto por produto", () => {
+    const { resumo } = compararProdutos(casos, ["Redes", "Site"], "mes", null, null, agora);
+    expect(resumo).toEqual([
+      {
+        produto: "Redes",
+        pedidos: 2,
+        encerrados: 2,
+        cancelados: 1,
+        mantidos: 1,
+        abertos: 0,
+        churn: 0.5,
+        participacao: 0.5,
+      },
+      {
+        produto: "Site",
+        pedidos: 3,
+        encerrados: 2,
+        cancelados: 1,
+        mantidos: 1,
+        abertos: 1,
+        churn: 0.5,
+        participacao: 0.5,
+      },
+    ]);
+  });
+  it("série de cancelados por mês, uma coluna por produto", () => {
+    const { serie } = compararProdutos(casos, ["Redes", "Site"], "mes", null, null, agora);
+    expect(serie).toHaveLength(12);
+    expect(serie.at(-1)).toEqual({ rotulo: "mar/26", Redes: 1, Site: 0 });
+    expect(serie.at(-2)).toEqual({ rotulo: "fev/26", Redes: 0, Site: 1 });
+  });
+});
+import { compararProdutos } from "./retencao";
