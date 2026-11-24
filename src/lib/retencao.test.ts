@@ -269,3 +269,73 @@ describe("leitura da API", () => {
     expect(r.erro).toContain("404");
   });
 });
+
+import { churnPorProduto, porMesAnalise, porSemanaAnalise, tendencia } from "./retencao";
+
+describe("análises", () => {
+  const ref = new Date("2026-11-24T12:00:00-03:00"); // terça
+  const casos = [
+    {
+      data_solicitacao: "2026-11-24T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [
+        { nome: "Discador", cancelado: true },
+        { nome: "IA de Agendamento", cancelado: false },
+      ],
+    },
+    {
+      data_solicitacao: "2026-11-23T10:00:00-03:00",
+      status: "revertido",
+      servicos: [{ nome: "Discador", cancelado: false }],
+    },
+    {
+      data_solicitacao: "2026-11-18T10:00:00-03:00",
+      status: "downgrade",
+      servicos: [{ nome: "Discador", cancelado: true }],
+    },
+    {
+      data_solicitacao: "2026-10-05T10:00:00-03:00",
+      status: "em_andamento",
+      servicos: [{ nome: "Google", cancelado: false }],
+    },
+  ];
+  it("semana a semana com variação", () => {
+    const s = porSemanaAnalise(casos, 3, ref);
+    expect(s.map((b) => [b.rotulo, b.pedidos, b.cancelados, b.retidos])).toEqual([
+      ["09/11", 0, 0, 0],
+      ["16/11", 1, 0, 1],
+      ["23/11", 2, 1, 1],
+    ]);
+    expect(s[2]!.taxaCancelamento).toBeCloseTo(0.5);
+    expect(s[2]!.varPedidos).toBeCloseTo(1);
+    expect(s[1]!.varPedidos).toBeNull(); // de 0 para 1
+  });
+  it("mês a mês", () => {
+    const m = porMesAnalise(casos, 2, ref);
+    expect(m.map((b) => [b.rotulo, b.pedidos, b.abertos])).toEqual([
+      ["out/26", 1, 1],
+      ["nov/26", 3, 0],
+    ]);
+    expect(m[1]!.varPedidos).toBeCloseTo(2);
+  });
+  it("churn por produto entre pedidos encerrados", () => {
+    const p = churnPorProduto(casos);
+    expect(p[0]).toMatchObject({
+      produto: "Discador",
+      pedidos: 3,
+      encerrados: 3,
+      cancelados: 2,
+      mantidos: 1,
+    });
+    expect(p[0]!.churn).toBeCloseTo(2 / 3);
+    expect(p.find((x) => x.produto === "Google")).toMatchObject({ abertos: 1, churn: null });
+  });
+  it("tendência", () => {
+    const sobe = tendencia([1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ pedidos: n }) as never));
+    expect(sobe.direcao).toBe("subindo");
+    expect(sobe.inclinacao).toBeCloseTo(1);
+    expect(sobe.variacao4).toBeCloseTo((26 - 10) / 10);
+    expect(sobe.movel[3]).toBeCloseTo(2.5);
+    expect(tendencia([5, 5, 5, 5].map((n) => ({ pedidos: n }) as never)).direcao).toBe("estavel");
+  });
+});

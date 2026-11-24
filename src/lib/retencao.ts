@@ -250,3 +250,174 @@ export function linkWhatsapp(tel: string | null) {
   if (d.length < 10) return null;
   return `https://wa.me/${d.length <= 11 ? `55${d}` : d}`;
 }
+
+// ---------- Análises (view de dash) ----------
+
+export type CasoAnalise = { data_solicitacao: string; status: string; servicos?: unknown };
+
+export type Bucket = {
+  chave: string;
+  rotulo: string;
+  inicio: Date;
+  pedidos: number;
+  cancelados: number; // finalizado
+  retidos: number; // revertido + downgrade
+  revertidos: number;
+  downgrades: number;
+  abertos: number;
+  taxaCancelamento: number | null; // cancelados ÷ encerrados
+  varPedidos: number | null; // vs. período anterior
+  varCancelados: number | null;
+};
+
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const inicioSemana = (d: Date) => {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+};
+const inicioMes = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+const variacao = (atual: number, antes: number) =>
+  antes ? (atual - antes) / antes : atual ? null : 0;
+
+function agrupar(casos: CasoAnalise[], n: number, tipo: "semana" | "mes", agora: Date): Bucket[] {
+  const base = tipo === "semana" ? inicioSemana(agora) : inicioMes(agora);
+  const out: Bucket[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const ini = new Date(base);
+    if (tipo === "semana") ini.setDate(ini.getDate() - 7 * i);
+    else ini.setMonth(ini.getMonth() - i);
+    const dd = String(ini.getDate()).padStart(2, "0");
+    const mm = String(ini.getMonth() + 1).padStart(2, "0");
+    out.push({
+      chave: ini.toISOString(),
+      rotulo:
+        tipo === "semana"
+          ? `${dd}/${mm}`
+          : `${MESES[ini.getMonth()]}/${String(ini.getFullYear()).slice(2)}`,
+      inicio: ini,
+      pedidos: 0,
+      cancelados: 0,
+      retidos: 0,
+      revertidos: 0,
+      downgrades: 0,
+      abertos: 0,
+      taxaCancelamento: null,
+      varPedidos: null,
+      varCancelados: null,
+    });
+  }
+  const idx = new Map(out.map((b, i) => [b.inicio.getTime(), i]));
+  for (const c of casos) {
+    const d = new Date(c.data_solicitacao);
+    const k = (tipo === "semana" ? inicioSemana(d) : inicioMes(d)).getTime();
+    const i = idx.get(k);
+    if (i === undefined) continue;
+    const b = out[i]!;
+    b.pedidos++;
+    if (c.status === "finalizado") b.cancelados++;
+    else if (c.status === "revertido") {
+      b.retidos++;
+      b.revertidos++;
+    } else if (c.status === "downgrade") {
+      b.retidos++;
+      b.downgrades++;
+    } else b.abertos++;
+  }
+  out.forEach((b, i) => {
+    const enc = b.cancelados + b.retidos;
+    b.taxaCancelamento = enc ? b.cancelados / enc : null;
+    if (i > 0) {
+      b.varPedidos = variacao(b.pedidos, out[i - 1]!.pedidos);
+      b.varCancelados = variacao(b.cancelados, out[i - 1]!.cancelados);
+    }
+  });
+  return out;
+}
+
+export const porSemanaAnalise = (casos: CasoAnalise[], n = 12, agora = new Date()) =>
+  agrupar(casos, n, "semana", agora);
+export const porMesAnalise = (casos: CasoAnalise[], n = 12, agora = new Date()) =>
+  agrupar(casos, n, "mes", agora);
+
+/**
+ * Churn por produto, entre os pedidos de cancelamento: em cada pedido encerrado, o serviço conta como
+ * perdido se foi cancelado e como mantido se não foi. Não mede a base total de clientes do produto.
+ */
+export function churnPorProduto(casos: CasoAnalise[]) {
+  const m = new Map<
+    string,
+    {
+      produto: string;
+      pedidos: number;
+      encerrados: number;
+      cancelados: number;
+      mantidos: number;
+      abertos: number;
+    }
+  >();
+  for (const c of casos) {
+    const servs = (Array.isArray(c.servicos) ? c.servicos : []) as {
+      nome: string;
+      cancelado: boolean;
+    }[];
+    const encerrado = ENCERRADOS.includes(c.status as StatusRetencao);
+    for (const s of servs) {
+      const p = m.get(s.nome) ?? {
+        produto: s.nome,
+        pedidos: 0,
+        encerrados: 0,
+        cancelados: 0,
+        mantidos: 0,
+        abertos: 0,
+      };
+      p.pedidos++;
+      if (encerrado) {
+        p.encerrados++;
+        if (s.cancelado) p.cancelados++;
+        else p.mantidos++;
+      } else p.abertos++;
+      m.set(s.nome, p);
+    }
+  }
+  return [...m.values()]
+    .map((p) => ({ ...p, churn: p.encerrados ? p.cancelados / p.encerrados : null }))
+    .sort((a, b) => b.pedidos - a.pedidos || a.produto.localeCompare(b.produto, "pt-BR"));
+}
+
+/** Tendência: média móvel de 4 semanas, inclinação (regressão linear) e últimas 4 semanas vs. 4 anteriores. */
+export function tendencia(semanas: Bucket[]) {
+  const ys = semanas.map((s) => s.pedidos);
+  const n = ys.length;
+  const media = ys.reduce((a, b) => a + b, 0) / Math.max(1, n);
+  const mx = (n - 1) / 2;
+  let num = 0,
+    den = 0;
+  ys.forEach((y, x) => {
+    num += (x - mx) * (y - media);
+    den += (x - mx) ** 2;
+  });
+  const inclinacao = den ? num / den : 0; // pedidos por semana
+  const movel = ys.map((_, i) =>
+    i >= 3 ? (ys[i]! + ys[i - 1]! + ys[i - 2]! + ys[i - 3]!) / 4 : null,
+  );
+  const soma = (a: number[]) => a.reduce((x, y) => x + y, 0);
+  const ult4 = soma(ys.slice(-4));
+  const ant4 = soma(ys.slice(-8, -4));
+  const direcao: "subindo" | "caindo" | "estavel" =
+    Math.abs(inclinacao) < Math.max(0.15, media * 0.05)
+      ? "estavel"
+      : inclinacao > 0
+        ? "subindo"
+        : "caindo";
+  return {
+    inclinacao,
+    media,
+    movel,
+    ultimas4: ult4,
+    anteriores4: ant4,
+    variacao4: ant4 ? (ult4 - ant4) / ant4 : null,
+    direcao,
+  };
+}

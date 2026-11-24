@@ -17,6 +17,9 @@ import { z } from "zod";
 import { toast } from "sonner";
 import {
   AlarmClock,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
   AlertTriangle,
   Clock,
   Columns3,
@@ -52,6 +55,7 @@ import {
 } from "@/lib/retencao";
 import { sincronizarRetencaoAgora } from "@/lib/retencao.functions";
 import { usePessoasAtivas } from "@/components/app/onboarding-edicao";
+import { RetencaoAnalises } from "@/components/app/retencao-analises";
 import { EmptyState, FilterLabel, KpiCard } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +85,7 @@ import {
 } from "@/components/ui/dialog";
 
 const searchSchema = z.object({
-  visao: z.enum(["kanban", "tabela"]).optional(),
+  visao: z.enum(["kanban", "tabela", "dash"]).optional(),
   status: z.string().optional(),
   tag: z.string().optional(),
   motivo: z.string().optional(),
@@ -141,6 +145,13 @@ function Retencao() {
   const [contatoDe, setContatoDe] = useState<CasoOk | null>(null);
   const [sincronizando, setSincronizando] = useState(false);
   const visao = busca.visao ?? "kanban";
+  const [dashMinimizado, setDashMinimizado] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem("retencao-dash-min") === "1",
+  );
+  const alternarDash = (v: boolean) => {
+    setDashMinimizado(v);
+    localStorage.setItem("retencao-dash-min", v ? "1" : "0");
+  };
   const set = (p: Partial<z.infer<typeof searchSchema>>) =>
     navigate({ search: (prev) => ({ ...prev, ...p }), replace: true });
 
@@ -170,6 +181,15 @@ function Retencao() {
     });
   }, [doPeriodo, q, busca]);
   const m = useMemo(() => metricas(doPeriodo), [doPeriodo]);
+  const analisaveis = useMemo(
+    () =>
+      casos.filter(
+        (c) =>
+          (!busca.motivo || c.motivo_api === busca.motivo) &&
+          (!busca.tag || c.tags.includes(busca.tag)),
+      ),
+    [casos, busca.motivo, busca.tag],
+  );
   const semanas = useMemo(() => porSemana(doPeriodo, 8), [doPeriodo]);
   const todosMotivos = useMemo(
     () =>
@@ -273,6 +293,13 @@ function Retencao() {
             >
               <LayoutList className="h-3.5 w-3.5" /> Tabela
             </button>
+            <button
+              type="button"
+              onClick={() => set({ visao: "dash" })}
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold ${visao === "dash" ? "bg-[#111827] text-white" : "text-muted-foreground"}`}
+            >
+              <BarChart3 className="h-3.5 w-3.5" /> Dash
+            </button>
           </div>
           <Button variant="outline" onClick={sincronizarAgora} disabled={sincronizando}>
             <RefreshCw className={sincronizando ? "animate-spin" : ""} /> Sincronizar agora
@@ -307,274 +334,339 @@ function Retencao() {
         </button>
       )}
 
-      {/* Dash */}
-      <section className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard
-            title="Em aberto"
-            value={m.abertos}
-            icon={Hourglass}
-            color="#0284C7"
-            hint="Não iniciados, pendentes e em andamento"
-            selected={false}
-            onClick={() => set({ status: undefined, atrasados: undefined })}
-          />
-          <KpiCard
-            title="Contato atrasado (48h)"
-            value={m.contatoAtrasado}
-            icon={AlarmClock}
-            color="#EF4444"
-            selected={!!busca.atrasados}
-            onClick={() => set({ atrasados: busca.atrasados ? undefined : true })}
-          />
-          <KpiCard
-            title="Taxa de retenção"
-            value={m.taxaRetencao == null ? "—" : `${Math.round(m.taxaRetencao * 100)}%`}
-            icon={ShieldCheck}
-            color="#10B981"
-            hint="(Revertidos + downgrades) ÷ casos encerrados"
-          />
-          <KpiCard
-            title="1º contato em média"
-            value={m.mediaHorasContato == null ? "—" : `${Math.round(m.mediaHorasContato)}h`}
-            icon={PhoneCall}
-            color="#7C3AED"
-            hint={
-              m.contatoNoPrazo == null
-                ? undefined
-                : `${Math.round(m.contatoNoPrazo * 100)}% dentro das 48h`
-            }
-          />
+      {/* Dash (resumo) */}
+      {dashMinimizado && visao !== "dash" ? (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg border bg-card px-4 py-2.5 text-sm shadow-card">
+          <span>
+            Em aberto <b>{m.abertos}</b>
+          </span>
+          <span className={m.contatoAtrasado ? "text-[#B91C1C]" : ""}>
+            Contato atrasado <b>{m.contatoAtrasado}</b>
+          </span>
+          <span>
+            Prazo vencido <b>{m.prazoVencido}</b>
+          </span>
+          <span>
+            Retenção <b>{m.taxaRetencao == null ? "—" : `${Math.round(m.taxaRetencao * 100)}%`}</b>
+          </span>
+          <span className="ml-auto flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => set({ visao: "dash" })}>
+              <BarChart3 /> Abrir dash completo
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => alternarDash(false)}>
+              <ChevronDown /> Mostrar resumo
+            </Button>
+          </span>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr]">
-          <div className="rounded-lg border bg-card p-4 shadow-card">
+      ) : (
+        <section className="space-y-3">
+          {visao !== "dash" && (
             <div className="flex items-center justify-between">
-              <div className="filter-label">Pedidos por semana</div>
-              <div className="flex gap-3 text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-[#10B981]" />
-                  Retidos
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-[#EF4444]" />
-                  Cancelados
-                </span>
-                <span className="flex items-center gap-1">
-                  <span className="h-2 w-2 rounded-sm bg-[#CBD5E1]" />
-                  Em aberto
-                </span>
+              <span className="filter-label">Resumo</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs text-muted-foreground"
+                onClick={() => alternarDash(true)}
+              >
+                <ChevronUp /> Minimizar
+              </Button>
+            </div>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              title="Em aberto"
+              value={m.abertos}
+              icon={Hourglass}
+              color="#0284C7"
+              hint="Não iniciados, pendentes e em andamento"
+              selected={false}
+              onClick={() => set({ status: undefined, atrasados: undefined })}
+            />
+            <KpiCard
+              title="Contato atrasado (48h)"
+              value={m.contatoAtrasado}
+              icon={AlarmClock}
+              color="#EF4444"
+              selected={!!busca.atrasados}
+              onClick={() => set({ atrasados: busca.atrasados ? undefined : true })}
+            />
+            <KpiCard
+              title="Taxa de retenção"
+              value={m.taxaRetencao == null ? "—" : `${Math.round(m.taxaRetencao * 100)}%`}
+              icon={ShieldCheck}
+              color="#10B981"
+              hint="(Revertidos + downgrades) ÷ casos encerrados"
+            />
+            <KpiCard
+              title="1º contato em média"
+              value={m.mediaHorasContato == null ? "—" : `${Math.round(m.mediaHorasContato)}h`}
+              icon={PhoneCall}
+              color="#7C3AED"
+              hint={
+                m.contatoNoPrazo == null
+                  ? undefined
+                  : `${Math.round(m.contatoNoPrazo * 100)}% dentro das 48h`
+              }
+            />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr]">
+            <div className="rounded-lg border bg-card p-4 shadow-card">
+              <div className="flex items-center justify-between">
+                <div className="filter-label">Pedidos por semana</div>
+                <div className="flex gap-3 text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-sm bg-[#10B981]" />
+                    Retidos
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-sm bg-[#EF4444]" />
+                    Cancelados
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-sm bg-[#CBD5E1]" />
+                    Em aberto
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 flex h-32 items-stretch gap-2">
+                {semanas.map((s) => {
+                  const max = Math.max(1, ...semanas.map((x) => x.total));
+                  const abertos = s.total - s.retidos - s.perdidos;
+                  return (
+                    <div
+                      key={s.inicio.toISOString()}
+                      className="flex h-full flex-1 flex-col items-center gap-1"
+                      title={`Semana de ${format(s.inicio, "dd/MM")}: ${s.total} pedidos`}
+                    >
+                      <div className="flex w-full flex-1 items-end">
+                        <div
+                          className="flex w-full flex-col-reverse overflow-hidden rounded-md bg-[#F1F5F9]"
+                          style={{ height: `${Math.max(4, (s.total / max) * 100)}%` }}
+                        >
+                          <span className="bg-[#10B981]" style={{ flexGrow: s.retidos }} />
+                          <span className="bg-[#EF4444]" style={{ flexGrow: s.perdidos }} />
+                          <span className="bg-[#CBD5E1]" style={{ flexGrow: abertos }} />
+                        </div>
+                      </div>
+                      <span className="text-[10px] tabular-nums text-muted-foreground">
+                        {format(s.inicio, "dd/MM")}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className="mt-3 flex h-32 items-stretch gap-2">
-              {semanas.map((s) => {
-                const max = Math.max(1, ...semanas.map((x) => x.total));
-                const abertos = s.total - s.retidos - s.perdidos;
-                return (
-                  <div
-                    key={s.inicio.toISOString()}
-                    className="flex h-full flex-1 flex-col items-center gap-1"
-                    title={`Semana de ${format(s.inicio, "dd/MM")}: ${s.total} pedidos`}
-                  >
-                    <div className="flex w-full flex-1 items-end">
-                      <div
-                        className="flex w-full flex-col-reverse overflow-hidden rounded-md bg-[#F1F5F9]"
-                        style={{ height: `${Math.max(4, (s.total / max) * 100)}%` }}
-                      >
-                        <span className="bg-[#10B981]" style={{ flexGrow: s.retidos }} />
-                        <span className="bg-[#EF4444]" style={{ flexGrow: s.perdidos }} />
-                        <span className="bg-[#CBD5E1]" style={{ flexGrow: abertos }} />
-                      </div>
-                    </div>
-                    <span className="text-[10px] tabular-nums text-muted-foreground">
-                      {format(s.inicio, "dd/MM")}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4 shadow-card">
-            <div className="filter-label">Por status</div>
-            <div className="mt-3 space-y-1.5">
-              {STATUS_RETENCAO.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => set({ status: busca.status === s.id ? undefined : s.id })}
-                  className={`flex w-full items-center gap-2 rounded px-1 text-left text-xs hover:bg-[#F8FAFC] ${busca.status === s.id ? "bg-[#F8FAFC] font-semibold" : ""}`}
-                >
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.cor }} />
-                  <span className="w-24 truncate">{s.rotulo}</span>
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
-                    <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${m.total ? (m.porStatus[s.id] / m.total) * 100 : 0}%`,
-                        backgroundColor: s.cor,
-                      }}
-                    />
-                  </span>
-                  <span className="w-6 text-right tabular-nums">{m.porStatus[s.id]}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4 shadow-card">
-            <div className="filter-label">Motivos do cancelamento</div>
-            <div className="mt-3 space-y-1.5">
-              {m.motivos.length === 0 && (
-                <p className="text-xs text-muted-foreground">Sem motivos informados.</p>
-              )}
-              {m.motivos.slice(0, 6).map(([t, n]) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => set({ motivo: busca.motivo === t ? undefined : t })}
-                  className={`flex w-full items-center gap-2 rounded px-1 text-left text-xs hover:bg-[#F8FAFC] ${busca.motivo === t ? "bg-[#F8FAFC] font-semibold" : ""}`}
-                  title={t}
-                >
-                  <span className="w-40 truncate">{t}</span>
-                  <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
-                    <span
-                      className="block h-full rounded-full bg-[#F59E0B]"
-                      style={{ width: `${(n / Math.max(1, m.motivos[0]![1])) * 100}%` }}
-                    />
-                  </span>
-                  <span className="w-6 text-right tabular-nums">{n}</span>
-                </button>
-              ))}
-            </div>
-            {m.tags.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
-                {m.tags.map(([t, n]) => (
+            <div className="rounded-lg border bg-card p-4 shadow-card">
+              <div className="filter-label">Por status</div>
+              <div className="mt-3 space-y-1.5">
+                {STATUS_RETENCAO.map((s) => (
                   <button
-                    key={t}
+                    key={s.id}
                     type="button"
-                    onClick={() => set({ tag: busca.tag === t ? undefined : t })}
-                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${busca.tag === t ? "border-transparent bg-[#111827] text-white" : "bg-white hover:border-[#CBD5E1]"}`}
+                    onClick={() => set({ status: busca.status === s.id ? undefined : s.id })}
+                    className={`flex w-full items-center gap-2 rounded px-1 text-left text-xs hover:bg-[#F8FAFC] ${busca.status === s.id ? "bg-[#F8FAFC] font-semibold" : ""}`}
                   >
-                    <Tag className="h-3 w-3" />
-                    {t} <b className="tabular-nums">{n}</b>
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.cor }} />
+                    <span className="w-24 truncate">{s.rotulo}</span>
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+                      <span
+                        className="block h-full rounded-full"
+                        style={{
+                          width: `${m.total ? (m.porStatus[s.id] / m.total) * 100 : 0}%`,
+                          backgroundColor: s.cor,
+                        }}
+                      />
+                    </span>
+                    <span className="w-6 text-right tabular-nums">{m.porStatus[s.id]}</span>
                   </button>
                 ))}
               </div>
-            )}
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-              <div className="rounded-md bg-[#F8FAFC] p-2">
-                <div className="text-muted-foreground">Revertidos</div>
-                <div className="text-base font-bold text-[#065F46]">{m.porStatus.revertido}</div>
+            </div>
+            <div className="rounded-lg border bg-card p-4 shadow-card">
+              <div className="filter-label">Motivos do cancelamento</div>
+              <div className="mt-3 space-y-1.5">
+                {m.motivos.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Sem motivos informados.</p>
+                )}
+                {m.motivos.slice(0, 6).map(([t, n]) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => set({ motivo: busca.motivo === t ? undefined : t })}
+                    className={`flex w-full items-center gap-2 rounded px-1 text-left text-xs hover:bg-[#F8FAFC] ${busca.motivo === t ? "bg-[#F8FAFC] font-semibold" : ""}`}
+                    title={t}
+                  >
+                    <span className="w-40 truncate">{t}</span>
+                    <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+                      <span
+                        className="block h-full rounded-full bg-[#F59E0B]"
+                        style={{ width: `${(n / Math.max(1, m.motivos[0]![1])) * 100}%` }}
+                      />
+                    </span>
+                    <span className="w-6 text-right tabular-nums">{n}</span>
+                  </button>
+                ))}
               </div>
-              <div className="rounded-md bg-[#F8FAFC] p-2">
-                <div className="text-muted-foreground">Downgrades</div>
-                <div className="text-base font-bold text-[#5B21B6]">{m.porStatus.downgrade}</div>
+              {m.tags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
+                  {m.tags.map(([t, n]) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => set({ tag: busca.tag === t ? undefined : t })}
+                      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${busca.tag === t ? "border-transparent bg-[#111827] text-white" : "bg-white hover:border-[#CBD5E1]"}`}
+                    >
+                      <Tag className="h-3 w-3" />
+                      {t} <b className="tabular-nums">{n}</b>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-md bg-[#F8FAFC] p-2">
+                  <div className="text-muted-foreground">Revertidos</div>
+                  <div className="text-base font-bold text-[#065F46]">{m.porStatus.revertido}</div>
+                </div>
+                <div className="rounded-md bg-[#F8FAFC] p-2">
+                  <div className="text-muted-foreground">Downgrades</div>
+                  <div className="text-base font-bold text-[#5B21B6]">{m.porStatus.downgrade}</div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Filtros */}
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3 shadow-card">
-        <div className="w-64">
-          <FilterLabel htmlFor="br">Buscar</FilterLabel>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="br"
-              className="pl-8"
-              placeholder="ID AppCRC, telefone, clínica ou solicitante"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+      {visao === "dash" && (
+        <>
+          <div className="flex flex-wrap items-end gap-3">
+            <Filtro
+              rotulo="Motivo"
+              valor={busca.motivo}
+              onChange={(v) => set({ motivo: v })}
+              opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
             />
+            <Filtro
+              rotulo="Tag"
+              valor={busca.tag}
+              onChange={(v) => set({ tag: v })}
+              opcoes={todasTags.map((t) => ({ v: t, r: t }))}
+            />
+            <span className="pb-2 text-xs text-muted-foreground">
+              As análises usam todos os pedidos (sem o filtro de período).
+            </span>
           </div>
-        </div>
-        <Filtro
-          rotulo="Motivo"
-          valor={busca.motivo}
-          onChange={(v) => set({ motivo: v })}
-          opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
-        />
-        <Filtro
-          rotulo="Status"
-          valor={busca.status}
-          onChange={(v) => set({ status: v })}
-          opcoes={STATUS_RETENCAO.map((s) => ({ v: s.id, r: s.rotulo }))}
-        />
-        <Filtro
-          rotulo="Tag"
-          valor={busca.tag}
-          onChange={(v) => set({ tag: v })}
-          opcoes={todasTags.map((t) => ({ v: t, r: t }))}
-        />
-        <Filtro
-          rotulo="Responsável"
-          valor={busca.resp}
-          onChange={(v) => set({ resp: v })}
-          opcoes={[
-            { v: "sem", r: "Sem responsável" },
-            ...pessoas.map((p) => ({ v: p.id, r: p.full_name || p.email || "" })),
-          ]}
-        />
-        <Filtro
-          rotulo="Solicitado"
-          valor={busca.periodo === "tudo" ? undefined : busca.periodo}
-          onChange={(v) => set({ periodo: (v as "30" | "90" | undefined) ?? "tudo" })}
-          opcoes={[
-            { v: "30", r: "Últimos 30 dias" },
-            { v: "90", r: "Últimos 90 dias" },
-          ]}
-          todos="Todo o período"
-        />
-        <label className="flex items-center gap-2 pb-2 text-sm">
-          <Switch
-            checked={!!busca.atrasados}
-            onCheckedChange={(v) => set({ atrasados: v || undefined })}
-          />{" "}
-          Só atrasados
-        </label>
-        {(busca.status || busca.tag || busca.motivo || busca.resp || busca.atrasados || q) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mb-0.5"
-            onClick={() => {
-              setQ("");
-              navigate({ search: { visao, periodo: busca.periodo }, replace: true });
-            }}
-          >
-            <X /> Limpar
-          </Button>
-        )}
-        <span className="ml-auto pb-2 text-xs text-muted-foreground">
-          {filtrados.length} caso{filtrados.length === 1 ? "" : "s"}
-        </span>
-      </div>
+          <RetencaoAnalises casos={analisaveis} />
+        </>
+      )}
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando...</p>
-      ) : casos.length === 0 ? (
-        <EmptyState
-          icon={TrendingDown}
-          title="Nenhum pedido de cancelamento ainda"
-          description="Os pedidos chegam da API de gestão às 8h e às 14h. Use “Sincronizar agora” para buscar já."
-        />
-      ) : visao === "kanban" ? (
-        <Kanban
-          casos={filtrados}
-          statusFiltro={busca.status}
-          nomePessoa={nomePessoa}
-          onAbrir={setAberto}
-          onMover={mudarStatus}
-          onContato={setContatoDe}
-        />
-      ) : (
-        <Tabela
-          casos={filtrados}
-          nomePessoa={nomePessoa}
-          onAbrir={setAberto}
-          onStatus={mudarStatus}
-          onContato={setContatoDe}
-        />
+      {visao !== "dash" && (
+        <>
+          {/* Filtros */}
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3 shadow-card">
+            <div className="w-64">
+              <FilterLabel htmlFor="br">Buscar</FilterLabel>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="br"
+                  className="pl-8"
+                  placeholder="ID AppCRC, telefone, clínica ou solicitante"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </div>
+            </div>
+            <Filtro
+              rotulo="Motivo"
+              valor={busca.motivo}
+              onChange={(v) => set({ motivo: v })}
+              opcoes={todosMotivos.map((t) => ({ v: t, r: t }))}
+            />
+            <Filtro
+              rotulo="Status"
+              valor={busca.status}
+              onChange={(v) => set({ status: v })}
+              opcoes={STATUS_RETENCAO.map((s) => ({ v: s.id, r: s.rotulo }))}
+            />
+            <Filtro
+              rotulo="Tag"
+              valor={busca.tag}
+              onChange={(v) => set({ tag: v })}
+              opcoes={todasTags.map((t) => ({ v: t, r: t }))}
+            />
+            <Filtro
+              rotulo="Responsável"
+              valor={busca.resp}
+              onChange={(v) => set({ resp: v })}
+              opcoes={[
+                { v: "sem", r: "Sem responsável" },
+                ...pessoas.map((p) => ({ v: p.id, r: p.full_name || p.email || "" })),
+              ]}
+            />
+            <Filtro
+              rotulo="Solicitado"
+              valor={busca.periodo === "tudo" ? undefined : busca.periodo}
+              onChange={(v) => set({ periodo: (v as "30" | "90" | undefined) ?? "tudo" })}
+              opcoes={[
+                { v: "30", r: "Últimos 30 dias" },
+                { v: "90", r: "Últimos 90 dias" },
+              ]}
+              todos="Todo o período"
+            />
+            <label className="flex items-center gap-2 pb-2 text-sm">
+              <Switch
+                checked={!!busca.atrasados}
+                onCheckedChange={(v) => set({ atrasados: v || undefined })}
+              />{" "}
+              Só atrasados
+            </label>
+            {(busca.status || busca.tag || busca.motivo || busca.resp || busca.atrasados || q) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mb-0.5"
+                onClick={() => {
+                  setQ("");
+                  navigate({ search: { visao, periodo: busca.periodo }, replace: true });
+                }}
+              >
+                <X /> Limpar
+              </Button>
+            )}
+            <span className="ml-auto pb-2 text-xs text-muted-foreground">
+              {filtrados.length} caso{filtrados.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Carregando...</p>
+          ) : casos.length === 0 ? (
+            <EmptyState
+              icon={TrendingDown}
+              title="Nenhum pedido de cancelamento ainda"
+              description="Os pedidos chegam da API de gestão às 8h e às 14h. Use “Sincronizar agora” para buscar já."
+            />
+          ) : visao === "kanban" ? (
+            <Kanban
+              casos={filtrados}
+              statusFiltro={busca.status}
+              nomePessoa={nomePessoa}
+              onAbrir={setAberto}
+              onMover={mudarStatus}
+              onContato={setContatoDe}
+            />
+          ) : (
+            <Tabela
+              casos={filtrados}
+              nomePessoa={nomePessoa}
+              onAbrir={setAberto}
+              onStatus={mudarStatus}
+              onContato={setContatoDe}
+            />
+          )}
+        </>
       )}
 
       {caso && (
