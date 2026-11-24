@@ -99,6 +99,13 @@
       "when": 1793800013000,
       "tag": "0013_produto_onboardings",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793800014000,
+      "tag": "0014_retencao",
+      "breakpoints": true
     }
   ]
 }

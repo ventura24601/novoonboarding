@@ -19,6 +19,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedMinhasEtapasRouteImport } from './routes/_authenticated/minhas-etapas'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedRetencaoRouteImport } from './routes/_authenticated/retencao'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
 import { Route as AuthenticatedVendasRouteImport } from './routes/_authenticated/vendas'
 import { Route as AuthenticatedVinculosRouteImport } from './routes/_authenticated/vinculos'
@@ -82,6 +83,11 @@ const AuthenticatedMinhasEtapasRoute =
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRetencaoRoute = AuthenticatedRetencaoRouteImport.update({
+  id: '/retencao',
+  path: '/retencao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/retencao': typeof AuthenticatedRetencaoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/vinculos': typeof AuthenticatedVinculosRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/retencao': typeof AuthenticatedRetencaoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/vendas': typeof AuthenticatedVendasRoute
   '/vinculos': typeof AuthenticatedVinculosRoute
@@ -207,6 +215,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/minhas-etapas': typeof AuthenticatedMinhasEtapasRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/retencao': typeof AuthenticatedRetencaoRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/vendas': typeof AuthenticatedVendasRoute
   '/_authenticated/vinculos': typeof AuthenticatedVinculosRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/minhas-etapas'
     | '/painel'
+    | '/retencao'
     | '/usuarios'
     | '/vendas'
     | '/vinculos'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/minhas-etapas'
     | '/painel'
+    | '/retencao'
     | '/usuarios'
     | '/vendas'
     | '/vinculos'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/minhas-etapas'
     | '/_authenticated/painel'
+    | '/_authenticated/retencao'
     | '/_authenticated/usuarios'
     | '/_authenticated/vendas'
     | '/_authenticated/vinculos'
@@ -372,6 +384,13 @@ declare module '@tanstack/react-router' {
       path: '/painel'
       fullPath: '/painel'
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/retencao': {
+      id: '/_authenticated/retencao'
+      path: '/retencao'
+      fullPath: '/retencao'
+      preLoaderRoute: typeof AuthenticatedRetencaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/usuarios': {
@@ -469,6 +488,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMinhasEtapasRoute: typeof AuthenticatedMinhasEtapasRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedRetencaoRoute: typeof AuthenticatedRetencaoRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedVendasRoute: typeof AuthenticatedVendasRoute
   AuthenticatedVinculosRoute: typeof AuthenticatedVinculosRoute
@@ -488,6 +508,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMinhasEtapasRoute: AuthenticatedMinhasEtapasRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedRetencaoRoute: AuthenticatedRetencaoRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedVendasRoute: AuthenticatedVendasRoute,
   AuthenticatedVinculosRoute: AuthenticatedVinculosRoute,

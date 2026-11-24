@@ -896,8 +896,182 @@ export type Database = {
         }
         Relationships: []
       }
+      retencao_atividades: {
+        Row: {
+          canal: string | null
+          caso_id: string
+          created_at: string
+          de: string | null
+          id: string
+          para: string | null
+          resultado: string | null
+          texto: string | null
+          tipo: string
+          user_id: string | null
+        }
+        Insert: {
+          canal?: string | null
+          caso_id: string
+          created_at?: string
+          de?: string | null
+          id?: string
+          para?: string | null
+          resultado?: string | null
+          texto?: string | null
+          tipo: string
+          user_id?: string | null
+        }
+        Update: {
+          canal?: string | null
+          caso_id?: string
+          created_at?: string
+          de?: string | null
+          id?: string
+          para?: string | null
+          resultado?: string | null
+          texto?: string | null
+          tipo?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      retencao_casos: {
+        Row: {
+          cliente_nome: string | null
+          created_at: string
+          dados: Json
+          data_solicitacao: string
+          em_andamento_desde: string | null
+          email: string | null
+          encerrado_em: string | null
+          formulario_preenchido: boolean | null
+          id: string
+          id_appcrc: string | null
+          motivo_api: string | null
+          observacao: string | null
+          origem_id: string
+          prazo_resolucao: string | null
+          primeiro_contato_em: string | null
+          responsavel_id: string | null
+          sincronizado_em: string
+          status: string
+          tags: string[]
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cliente_nome?: string | null
+          created_at?: string
+          dados?: Json
+          data_solicitacao: string
+          em_andamento_desde?: string | null
+          email?: string | null
+          encerrado_em?: string | null
+          formulario_preenchido?: boolean | null
+          id?: string
+          id_appcrc?: string | null
+          motivo_api?: string | null
+          observacao?: string | null
+          origem_id: string
+          prazo_resolucao?: string | null
+          primeiro_contato_em?: string | null
+          responsavel_id?: string | null
+          sincronizado_em?: string
+          status?: string
+          tags?: string[]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cliente_nome?: string | null
+          created_at?: string
+          dados?: Json
+          data_solicitacao?: string
+          em_andamento_desde?: string | null
+          email?: string | null
+          encerrado_em?: string | null
+          formulario_preenchido?: boolean | null
+          id?: string
+          id_appcrc?: string | null
+          motivo_api?: string | null
+          observacao?: string | null
+          origem_id?: string
+          prazo_resolucao?: string | null
+          primeiro_contato_em?: string | null
+          responsavel_id?: string | null
+          sincronizado_em?: string
+          status?: string
+          tags?: string[]
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      retencao_sincronizacoes: {
+        Row: {
+          atualizados: number
+          erro: string | null
+          id: string
+          iniciado_em: string
+          novos: number
+          ok: boolean
+          origem: string
+          recebidos: number
+        }
+        Insert: {
+          atualizados?: number
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          novos?: number
+          ok: boolean
+          origem?: string
+          recebidos?: number
+        }
+        Update: {
+          atualizados?: number
+          erro?: string | null
+          id?: string
+          iniciado_em?: string
+          novos?: number
+          ok?: boolean
+          origem?: string
+          recebidos?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
+      retencao_casos_situacao: {
+        Row: {
+          cliente_nome: string | null
+          contato_atrasado: boolean | null
+          created_at: string | null
+          dados: Json | null
+          data_solicitacao: string | null
+          dias_uteis_restantes: number | null
+          em_andamento_desde: string | null
+          email: string | null
+          encerrado_em: string | null
+          formulario_preenchido: boolean | null
+          id: string | null
+          id_appcrc: string | null
+          motivo_api: string | null
+          observacao: string | null
+          origem_id: string | null
+          prazo_atrasado: boolean | null
+          prazo_contato: string | null
+          prazo_resolucao: string | null
+          primeiro_contato_em: string | null
+          responsavel_id: string | null
+          sincronizado_em: string | null
+          status: string | null
+          tags: string[] | null
+          telefone: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           cidade: string | null

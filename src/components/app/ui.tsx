@@ -35,7 +35,7 @@ export function ColorBadge({ color, children }: { color: string; children: React
 export function KpiCard({
   title, value, icon: Icon, color, selected, onClick, hint,
 }: {
-  title: string; value: ReactNode; icon: LucideIcon; color: string; selected?: boolean; onClick?: () => void; hint?: string;
+  title: string; value: ReactNode; icon: LucideIcon; color: string; selected?: boolean; onClick?: () => void; hint?: string | undefined;
 }) {
   const Comp = onClick ? "button" : "div";
   return (
