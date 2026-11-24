@@ -435,3 +435,66 @@ describe("relatório por linha e período", () => {
     ]);
   });
 });
+
+import {
+  formularioPreenchido,
+  funilRetencao,
+  produtosDosPedidos,
+  recortarProduto,
+} from "./retencao";
+
+describe("produto e funil", () => {
+  const casos = [
+    {
+      data_solicitacao: "2026-11-01",
+      status: "pendente",
+      data_preenchimento: null,
+      contato_feito_em: null,
+      servicos: [{ nome: "Discador", cancelado: false }],
+    },
+    {
+      data_solicitacao: "2026-11-02",
+      status: "finalizado",
+      data_preenchimento: "2026-11-02T10:00:00Z",
+      contato_feito_em: "2026-11-03T10:00:00Z",
+      servicos: [
+        { nome: "Discador", cancelado: true },
+        { nome: "Google", cancelado: true },
+      ],
+    },
+    {
+      data_solicitacao: "2026-11-03",
+      status: "revertido",
+      data_preenchimento: "2026-11-03T10:00:00Z",
+      contato_feito_em: "2026-11-06T10:00:00Z",
+      servicos: [{ nome: "Google", cancelado: false }],
+    },
+    {
+      data_solicitacao: "2026-11-04",
+      status: "nao_iniciado",
+      data_preenchimento: "2026-11-04T10:00:00Z",
+      contato_feito_em: null,
+      servicos: [],
+    },
+  ];
+  it("recorta por produto e lista os produtos", () => {
+    const g = recortarProduto(casos, "Google");
+    expect(g).toHaveLength(2);
+    expect(g[0]!.servicos).toEqual([{ nome: "Google", cancelado: true }]);
+    expect(produtosDosPedidos(casos)).toEqual([
+      { nome: "Discador", n: 2 },
+      { nome: "Google", n: 2 },
+    ]);
+  });
+  it("formulário preenchido", () => {
+    expect(casos.filter(formularioPreenchido)).toHaveLength(3);
+  });
+  it("funil", () => {
+    const f = funilRetencao(casos);
+    expect(f.etapas.map((e) => e.n)).toEqual([4, 3, 2, 2, 1]);
+    expect(f.etapas[1]!.doAnterior).toBeCloseTo(0.75);
+    expect(f.semFormulario).toBe(1);
+    expect(f.mediaHorasContato).toBeCloseTo((24 + 72) / 2);
+    expect(f.contatoEm48h).toBeCloseTo(0.5);
+  });
+});

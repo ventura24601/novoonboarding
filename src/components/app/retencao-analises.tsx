@@ -17,6 +17,7 @@ import {
   porMesAnalise,
   porPeriodoAnalise,
   porSemanaAnalise,
+  funilRetencao,
   resumoRelatorio,
   tendencia,
   type Bucket,
@@ -208,11 +209,15 @@ function Comparativo({ buckets, unidade }: { buckets: Bucket[]; unidade: "semana
 
 export function RetencaoAnalises({
   casos,
+  todos,
+  somentePreenchidos,
   inicio,
   fim,
   linha,
 }: {
   casos: (CasoAnalise & { motivo_api?: string | null })[];
+  todos: (CasoAnalise & { data_preenchimento?: string | null; contato_feito_em?: string | null })[]; // inclui quem não preencheu
+  somentePreenchidos: boolean;
   inicio: Date | null;
   fim: Date | null;
   linha: string | null; // rótulo da linha (Redes, Black) quando há recorte
@@ -229,6 +234,8 @@ export function RetencaoAnalises({
     [casos, inicio, fim],
   );
   const r = useMemo(() => resumoRelatorio(casos), [casos]);
+  const funil = useMemo(() => funilRetencao(todos), [todos]);
+  const maxFunil = Math.max(1, funil.etapas[0]?.n ?? 0);
   const produtos = useMemo(() => churnPorProduto(casos), [casos]);
   const tend = useMemo(() => tendencia(semanas), [semanas]);
   const dadosTend = semanas.map((s, i) => ({
@@ -324,6 +331,53 @@ export function RetencaoAnalises({
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border bg-card p-5 shadow-card">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h3 className="text-base font-semibold">Funil da retenção</h3>
+            <p className="text-xs text-muted-foreground">
+              Do pedido ao resultado.{" "}
+              {somentePreenchidos
+                ? `${funil.semFormulario} pedido${funil.semFormulario === 1 ? "" : "s"} sem formulário preenchido ficam fora dos outros números do dash.`
+                : "Os outros números do dash incluem quem não preencheu o formulário."}
+            </p>
+          </div>
+          <div className="flex gap-4 text-xs">
+            <div>
+              <div className="text-muted-foreground">Preenchimento → 1º contato</div>
+              <div className="text-lg font-bold">
+                {funil.mediaHorasContato == null ? "—" : `${Math.round(funil.mediaHorasContato)}h`}
+              </div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Contato em até 48h</div>
+              <div className="text-lg font-bold text-[#047857]">{pct(funil.contatoEm48h)}</div>
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          {funil.etapas.map((e, i) => (
+            <div key={e.id} className="grid grid-cols-[180px_1fr_110px] items-center gap-3 text-sm">
+              <span className="truncate font-medium">{e.rotulo}</span>
+              <div className="h-7 overflow-hidden rounded-md bg-[#F1F5F9]">
+                <div
+                  className="flex h-full items-center rounded-md px-2 text-xs font-bold text-white"
+                  style={{
+                    width: `${Math.max(e.n ? 6 : 0, (e.n / maxFunil) * 100)}%`,
+                    background: ["#64748B", "#0284C7", "#7C3AED", "#F59E0B", "#10B981"][i],
+                  }}
+                >
+                  {e.n}
+                </div>
+              </div>
+              <span className="text-right text-xs text-muted-foreground">
+                {e.doAnterior == null ? "100%" : `${pct(e.doAnterior)} da etapa anterior`}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
       <div className="grid gap-4 xl:grid-cols-[1fr_380px]">

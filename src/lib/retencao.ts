@@ -523,3 +523,61 @@ export function noIntervalo<T extends { data_solicitacao: string }>(
     return t >= ini && t <= fim;
   });
 }
+
+/** Só pedidos com o produto, e só esse serviço em cada pedido (para churn do produto). */
+export function recortarProduto<T extends CasoAnalise>(casos: T[], produto: string | null): T[] {
+  if (!produto) return casos;
+  return casos
+    .filter((c) => servicosCaso(c).some((s) => s.nome === produto))
+    .map((c) => ({ ...c, servicos: servicosCaso(c).filter((s) => s.nome === produto) }));
+}
+
+/** Produtos presentes nos pedidos, do mais pedido ao menos. */
+export function produtosDosPedidos(casos: CasoAnalise[]) {
+  const m = new Map<string, number>();
+  for (const c of casos) for (const s of servicosCaso(c)) m.set(s.nome, (m.get(s.nome) ?? 0) + 1);
+  return [...m.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+    .map(([nome, n]) => ({ nome, n }));
+}
+
+/** Formulário de cancelamento preenchido pelo cliente (sem ele, o pedido não chegou a ser formalizado). */
+export const formularioPreenchido = (c: { data_preenchimento?: string | null }) =>
+  !!c.data_preenchimento;
+
+type CasoFunil = CasoAnalise & {
+  data_preenchimento?: string | null;
+  contato_feito_em?: string | null;
+};
+
+/** Funil da retenção: pediram → preencheram o formulário → tiveram contato → encerrados → retidos. */
+export function funilRetencao(casos: CasoFunil[]) {
+  const preenchidos = casos.filter(formularioPreenchido);
+  const contatados = preenchidos.filter((c) => c.contato_feito_em);
+  const encerrados = preenchidos.filter((c) => ENCERRADOS.includes(c.status as StatusRetencao));
+  const retidos = encerrados.filter((c) => c.status === "revertido" || c.status === "downgrade");
+  const etapas = [
+    { id: "pedidos", rotulo: "Pediram cancelamento", n: casos.length },
+    { id: "preenchidos", rotulo: "Preencheram o formulário", n: preenchidos.length },
+    { id: "contatados", rotulo: "Tiveram contato do CS", n: contatados.length },
+    { id: "encerrados", rotulo: "Encerrados", n: encerrados.length },
+    { id: "retidos", rotulo: "Retidos (revertido + downgrade)", n: retidos.length },
+  ];
+  // Tempo do preenchimento ao 1º contato (só quem teve contato).
+  const horas = contatados
+    .map(
+      (c) =>
+        (new Date(c.contato_feito_em!).getTime() - new Date(c.data_preenchimento!).getTime()) /
+        3600_000,
+    )
+    .filter((h) => h >= 0);
+  return {
+    etapas: etapas.map((e, i) => ({
+      ...e,
+      doAnterior: i === 0 ? null : etapas[i - 1]!.n ? e.n / etapas[i - 1]!.n : null,
+    })),
+    semFormulario: casos.length - preenchidos.length,
+    mediaHorasContato: horas.length ? horas.reduce((a, b) => a + b, 0) / horas.length : null,
+    contatoEm48h: horas.length ? horas.filter((h) => h <= 48).length / horas.length : null,
+  };
+}

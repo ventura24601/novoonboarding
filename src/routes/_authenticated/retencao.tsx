@@ -46,9 +46,12 @@ import {
   ENCERRADOS,
   LINHAS,
   RESULTADOS,
+  formularioPreenchido,
   noIntervalo,
   produtoDaLinha,
+  produtosDosPedidos,
   recortarLinha,
+  recortarProduto,
   STATUS_RETENCAO,
   TAGS_SUGERIDAS,
   contagem,
@@ -110,6 +113,8 @@ const searchSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
   linha: z.enum(["redes", "black"]).optional(),
+  produto: z.string().optional(),
+  preenchidos: z.enum(["sim", "nao"]).optional(),
 });
 
 export const Route = createFileRoute("/_authenticated/retencao")({
@@ -274,11 +279,20 @@ function Retencao() {
     navigate({ search: (prev) => ({ ...prev, ...p }), replace: true });
 
   const casos = useMemo(() => data?.casos ?? [], [data]);
-  const doPeriodo = useMemo(() => {
-    if (!busca.periodo || busca.periodo === "tudo") return casos;
-    const lim = Date.now() - Number(busca.periodo) * 86400_000;
-    return casos.filter((c) => new Date(c.data_solicitacao).getTime() >= lim);
-  }, [casos, busca.periodo]);
+  const somentePreenchidos = busca.preenchidos ? busca.preenchidos === "sim" : visao === "dash";
+  // Datas e produto valem para kanban, tabela e dash.
+  const semFormFiltro = useMemo(
+    () =>
+      noIntervalo(casos, busca.de ?? null, busca.ate ?? null).filter(
+        (c) => !busca.produto || servicosDe(c).some((x) => x.nome === busca.produto),
+      ),
+    [casos, busca.de, busca.ate, busca.produto],
+  );
+  const doPeriodo = useMemo(
+    () => (somentePreenchidos ? semFormFiltro.filter(formularioPreenchido) : semFormFiltro),
+    [semFormFiltro, somentePreenchidos],
+  );
+  const produtosLista = useMemo(() => produtosDosPedidos(casos), [casos]);
   const filtrados = useMemo(() => {
     const t = q.trim().toLowerCase();
     const d = soDigitos(t);
@@ -301,17 +315,27 @@ function Retencao() {
   }, [doPeriodo, q, busca, ocultos]);
   const m = useMemo(() => metricas(doPeriodo), [doPeriodo]);
   const linhaSel = LINHAS.find((l) => l.id === busca.linha) ?? null;
-  const relatorio = useMemo(() => {
-    const base = casos.filter(
-      (c) =>
-        (!busca.motivo || c.motivo_api === busca.motivo) &&
-        (!busca.tag || c.tags.includes(busca.tag)),
-    );
-    return recortarLinha(
-      noIntervalo(base, busca.de ?? null, busca.ate ?? null),
-      busca.linha ?? null,
-    );
-  }, [casos, busca.motivo, busca.tag, busca.de, busca.ate, busca.linha]);
+  const porMotivoTag = (c: CasoOk) =>
+    (!busca.motivo || c.motivo_api === busca.motivo) && (!busca.tag || c.tags.includes(busca.tag));
+  const relatorio = useMemo(
+    () =>
+      recortarProduto(
+        recortarLinha(doPeriodo.filter(porMotivoTag), busca.linha ?? null),
+        busca.produto ?? null,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [doPeriodo, busca.motivo, busca.tag, busca.linha, busca.produto],
+  );
+  // Funil precisa também de quem não preencheu o formulário.
+  const relatorioTodos = useMemo(
+    () =>
+      recortarProduto(
+        recortarLinha(semFormFiltro.filter(porMotivoTag), busca.linha ?? null),
+        busca.produto ?? null,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [semFormFiltro, busca.motivo, busca.tag, busca.linha, busca.produto],
+  );
   const intervalo = useMemo(() => {
     if (!busca.de && !busca.ate) return { inicio: null, fim: null };
     const datas = casos.map((c) => c.data_solicitacao).sort();
@@ -748,6 +772,22 @@ function Retencao() {
                 onChange={(v) => set({ tag: v })}
                 opcoes={todasTags.map((t) => ({ v: t, r: t }))}
               />
+              <Filtro
+                rotulo="Produto"
+                valor={busca.produto}
+                onChange={(v) => set({ produto: v })}
+                opcoes={produtosLista.map((p) => ({ v: p.nome, r: `${p.nome} (${p.n})` }))}
+              />
+              <label
+                className="flex items-center gap-2 pb-2 text-sm"
+                title="Sem formulário preenchido o cliente não chegou a formalizar o cancelamento"
+              >
+                <Switch
+                  checked={somentePreenchidos}
+                  onCheckedChange={(v) => set({ preenchidos: v ? "sim" : "nao" })}
+                />
+                Só formulários preenchidos
+              </label>
               <div className="ml-auto flex gap-2">
                 <Button
                   variant="outline"
@@ -786,9 +826,11 @@ function Retencao() {
           </div>
           <RetencaoAnalises
             casos={relatorio}
+            todos={relatorioTodos}
+            somentePreenchidos={somentePreenchidos}
             inicio={intervalo.inicio}
             fim={intervalo.fim}
-            linha={linhaSel?.rotulo ?? null}
+            linha={[linhaSel?.rotulo, busca.produto].filter(Boolean).join(" · ") || null}
           />
         </>
       )}
@@ -838,15 +880,39 @@ function Retencao() {
               ]}
             />
             <Filtro
-              rotulo="Solicitado"
-              valor={busca.periodo === "tudo" ? undefined : busca.periodo}
-              onChange={(v) => set({ periodo: (v as "30" | "90" | undefined) ?? "tudo" })}
-              opcoes={[
-                { v: "30", r: "Últimos 30 dias" },
-                { v: "90", r: "Últimos 90 dias" },
-              ]}
-              todos="Todo o período"
+              rotulo="Produto"
+              valor={busca.produto}
+              onChange={(v) => set({ produto: v })}
+              opcoes={produtosLista.map((p) => ({ v: p.nome, r: `${p.nome} (${p.n})` }))}
             />
+            <div className="w-36">
+              <FilterLabel htmlFor="lde">Solicitado de</FilterLabel>
+              <Input
+                id="lde"
+                type="date"
+                value={busca.de ?? ""}
+                onChange={(e) => set({ de: e.target.value || undefined })}
+              />
+            </div>
+            <div className="w-36">
+              <FilterLabel htmlFor="late">Até</FilterLabel>
+              <Input
+                id="late"
+                type="date"
+                value={busca.ate ?? ""}
+                onChange={(e) => set({ ate: e.target.value || undefined })}
+              />
+            </div>
+            <label
+              className="flex items-center gap-2 pb-2 text-sm"
+              title="Esconde quem pediu o cancelamento mas não preencheu o formulário"
+            >
+              <Switch
+                checked={somentePreenchidos}
+                onCheckedChange={(v) => set({ preenchidos: v ? "sim" : "nao" })}
+              />
+              Só formulários preenchidos
+            </label>
             <label className="flex items-center gap-2 pb-2 text-sm">
               <Switch
                 checked={!!busca.atrasados}
@@ -854,14 +920,23 @@ function Retencao() {
               />{" "}
               Só atrasados
             </label>
-            {(busca.status || busca.tag || busca.motivo || busca.resp || busca.atrasados || q) && (
+            {(busca.status ||
+              busca.tag ||
+              busca.motivo ||
+              busca.resp ||
+              busca.atrasados ||
+              busca.produto ||
+              busca.de ||
+              busca.ate ||
+              busca.preenchidos ||
+              q) && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="mb-0.5"
                 onClick={() => {
                   setQ("");
-                  navigate({ search: { visao, periodo: busca.periodo }, replace: true });
+                  navigate({ search: { visao }, replace: true });
                 }}
               >
                 <X /> Limpar
