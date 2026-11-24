@@ -482,7 +482,7 @@ export function RetencaoAnalises({
 
       <Cartao
         titulo="Churn por produto"
-        ajuda="Nos pedidos já encerrados, quanto de cada produto foi de fato cancelado. Considera só quem pediu cancelamento, não a base inteira de clientes do produto."
+        ajuda="Nos pedidos já encerrados, quanto de cada produto foi de fato cancelado (só quem pediu cancelamento, não a base inteira). Regras: Black conta como 1 pacote, Facebook conta como Redes e Discador só conta quando foi pedido sozinho."
       >
         {produtos.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sem produtos informados nos pedidos.</p>

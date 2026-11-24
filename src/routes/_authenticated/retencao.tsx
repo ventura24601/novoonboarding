@@ -52,6 +52,7 @@ import {
   noIntervalo,
   produtoDaLinha,
   produtosDosPedidos,
+  servicosParaContagem,
   recortarLinha,
   recortarProduto,
   STATUS_RETENCAO,
@@ -117,6 +118,7 @@ const searchSchema = z.object({
   linha: z.enum(["redes", "black"]).optional(),
   produto: z.string().optional(),
   preenchidos: z.enum(["sim", "nao"]).optional(),
+  abertos: z.enum(["sem"]).optional(),
   arquivados: z.boolean().optional(),
 });
 
@@ -127,7 +129,13 @@ export const Route = createFileRoute("/_authenticated/retencao")({
 });
 
 type Caso = Database["public"]["Views"]["retencao_casos_situacao"]["Row"];
-type CasoOk = Caso & { id: string; status: string; data_solicitacao: string; tags: string[] };
+type CasoOk = Caso & {
+  id: string;
+  status: string;
+  data_solicitacao: string;
+  tags: string[];
+  servicos_api?: unknown;
+};
 const TODOS = "__todos__";
 const isoDia = (d: Date) =>
   new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
@@ -238,7 +246,13 @@ function useCasos() {
           .limit(1),
       ]);
       if (c.error) throw c.error;
-      return { casos: (c.data ?? []) as CasoOk[], ultima: s.data?.[0] ?? null };
+      // Serviços contados pelas regras (Black pacote, Facebook = Redes, Discador só sozinho); originais em servicos_api.
+      const casos = ((c.data ?? []) as CasoOk[]).map((x) => ({
+        ...x,
+        servicos_api: x.servicos,
+        servicos: servicosParaContagem(x.servicos),
+      }));
+      return { casos, ultima: s.data?.[0] ?? null };
     },
     refetchInterval: 60_000,
   });
@@ -329,24 +343,33 @@ function Retencao() {
   const linhaSel = LINHAS.find((l) => l.id === busca.linha) ?? null;
   const porMotivoTag = (c: CasoOk) =>
     (!busca.motivo || c.motivo_api === busca.motivo) && (!busca.tag || c.tags.includes(busca.tag));
+  // "Sem Em aberto": o dash considera só pedidos já encerrados (revertido, downgrade, finalizado).
+  const porAberto = (c: CasoOk) =>
+    busca.abertos !== "sem" || ENCERRADOS.includes(c.status as StatusRetencao);
   const relatorio = useMemo(
     () =>
       recortarProduto(
-        recortarLinha(doPeriodo.filter(porMotivoTag), busca.linha ?? null),
+        recortarLinha(
+          doPeriodo.filter((c) => porMotivoTag(c) && porAberto(c)),
+          busca.linha ?? null,
+        ),
         busca.produto ?? null,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [doPeriodo, busca.motivo, busca.tag, busca.linha, busca.produto],
+    [doPeriodo, busca.motivo, busca.tag, busca.linha, busca.produto, busca.abertos],
   );
   // Funil precisa também de quem não preencheu o formulário.
   const relatorioTodos = useMemo(
     () =>
       recortarProduto(
-        recortarLinha(semFormFiltro.filter(porMotivoTag), busca.linha ?? null),
+        recortarLinha(
+          semFormFiltro.filter((c) => porMotivoTag(c) && porAberto(c)),
+          busca.linha ?? null,
+        ),
         busca.produto ?? null,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [semFormFiltro, busca.motivo, busca.tag, busca.linha, busca.produto],
+    [semFormFiltro, busca.motivo, busca.tag, busca.linha, busca.produto, busca.abertos],
   );
   const intervalo = useMemo(() => {
     if (!busca.de && !busca.ate) return { inicio: null, fim: null };
@@ -813,6 +836,16 @@ function Retencao() {
                   onCheckedChange={(v) => set({ preenchidos: v ? "sim" : "nao" })}
                 />
                 Só formulários preenchidos
+              </label>
+              <label
+                className="flex items-center gap-2 pb-2 text-sm"
+                title="Considera só os pedidos já encerrados (revertido, downgrade e finalizado)"
+              >
+                <Switch
+                  checked={busca.abertos === "sem"}
+                  onCheckedChange={(v) => set({ abertos: v ? "sem" : undefined })}
+                />
+                Sem Em aberto
               </label>
               <div className="ml-auto flex gap-2">
                 <Button
@@ -1766,7 +1799,8 @@ function PainelCaso({
     setNovaTag("");
   };
   const wa = linkWhatsapp(caso.telefone);
-  const servicos = servicosDe(caso);
+  const servicos = servicosDe({ servicos: caso.servicos_api ?? caso.servicos });
+  const contagemServicos = servicosDe(caso);
   const notasGestao = (Array.isArray(caso.anotacoes) ? caso.anotacoes : []) as {
     nome: string | null;
     data: string | null;
@@ -1892,6 +1926,19 @@ function PainelCaso({
                 {caso.servicos_restantes && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     Ficou com: <b className="text-foreground">{caso.servicos_restantes}</b>
+                  </p>
+                )}
+                {contagemServicos.map((x) => x.nome).join(",") !==
+                  servicos.map((x) => x.nome).join(",") && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Nas métricas conta como:{" "}
+                    <b className="text-foreground">
+                      {contagemServicos.map((x) => x.nome).join(", ") || "nenhum produto"}
+                    </b>
+                    <span className="block text-[11px]">
+                      Black é pacote, Facebook conta como Redes e Discador só conta quando pedido
+                      sozinho.
+                    </span>
                   </p>
                 )}
               </div>

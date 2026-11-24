@@ -581,3 +581,34 @@ export function funilRetencao(casos: CasoFunil[]) {
     contatoEm48h: horas.length ? horas.filter((h) => h <= 48).length / horas.length : null,
   };
 }
+
+// ---------- Regras de produto para contagem ----------
+
+export type Servico = { nome: string; cancelado: boolean };
+
+/**
+ * Serviços do pedido como devem ser contados nas métricas:
+ * - Black é pacote: pedido com qualquer produto "Black" conta como 1 serviço "Black" (os itens do pacote não contam).
+ * - Facebook conta como Redes.
+ * - Discador é bônus de todos os produtos: só conta quando foi o único serviço pedido.
+ * Os serviços originais continuam guardados e aparecem no painel do caso.
+ */
+export function servicosParaContagem(servicos: unknown): Servico[] {
+  const lista = (Array.isArray(servicos) ? servicos : []) as Servico[];
+  if (lista.some((s) => produtoDaLinha(s.nome, "black"))) {
+    return [
+      {
+        nome: "Black",
+        cancelado: lista.filter((s) => produtoDaLinha(s.nome, "black")).some((s) => s.cancelado),
+      },
+    ];
+  }
+  const porNome = new Map<string, Servico>();
+  for (const s of lista) {
+    const nome = norm(s.nome) === "facebook" ? "Redes" : s.nome;
+    const atual = porNome.get(nome);
+    porNome.set(nome, { nome, cancelado: (atual?.cancelado ?? false) || s.cancelado });
+  }
+  const out = [...porNome.values()];
+  return out.length > 1 ? out.filter((s) => norm(s.nome) !== "discador") : out;
+}

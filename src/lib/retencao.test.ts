@@ -498,3 +498,40 @@ describe("produto e funil", () => {
     expect(f.contatoEm48h).toBeCloseTo(0.5);
   });
 });
+
+import { servicosParaContagem } from "./retencao";
+
+describe("regras de produto", () => {
+  const S = (nome: string, cancelado = true) => ({ nome, cancelado });
+  it("Black é pacote: conta 1 vez e os itens do pacote somem", () => {
+    expect(
+      servicosParaContagem([
+        S("Discador"),
+        S("Facebook"),
+        S("Black"),
+        S("Marketing Pro Black"),
+        S("IA de vídeo"),
+      ]),
+    ).toEqual([S("Black")]);
+    expect(servicosParaContagem([S("Marketing Pro Black", false), S("Google")])).toEqual([
+      S("Black", false),
+    ]);
+  });
+  it("Facebook conta como Redes (sem duplicar)", () => {
+    expect(servicosParaContagem([S("Facebook"), S("IA de Agendamento", false)])).toEqual([
+      S("Redes"),
+      S("IA de Agendamento", false),
+    ]);
+    expect(servicosParaContagem([S("Facebook", false), S("Redes", true)])).toEqual([
+      S("Redes", true),
+    ]);
+  });
+  it("Discador só conta quando pedido sozinho", () => {
+    expect(servicosParaContagem([S("Discador")])).toEqual([S("Discador")]);
+    expect(servicosParaContagem([S("Discador"), S("Google")])).toEqual([S("Google")]);
+    expect(servicosParaContagem([S("Discador Comercial"), S("Discador")])).toEqual([
+      S("Discador Comercial"),
+    ]);
+    expect(servicosParaContagem([])).toEqual([]);
+  });
+});
