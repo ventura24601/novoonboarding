@@ -1,1374 +1,1400 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.18"
-  }
+    PostgrestVersion: "14.18";
+  };
   public: {
     Tables: {
       clients: {
         Row: {
-          activation_status: string | null
-          address: string | null
-          billing_system: string | null
-          cep: string | null
-          city: string | null
-          client_type: string
-          clinic_name: string
-          codigo_externo: string | null
-          contato_nome: string | null
-          contract_id: string | null
-          contract_signed: boolean
-          contract_signed_at: string | null
-          contract_verification_source: string | null
-          contract_verified_at: string | null
-          contract_verified_by: string | null
-          created_at: string
-          created_by: string | null
-          current_scenario: string | null
-          document: string | null
-          email: string | null
-          finalized_webhook_sent_at: string | null
-          financial_id: string | null
-          general_notes: string | null
-          goal: string | null
-          has_crc: boolean | null
-          has_facebook: boolean | null
-          has_marketing_experience: boolean | null
-          ic_id: string | null
-          id: string
-          legal_name: string | null
-          notes: string | null
-          onboarding_completed_at: string | null
-          onboarding_released_at: string | null
-          onboarding_sent: boolean
-          paid: boolean
-          pain: string | null
-          payment_date: string | null
-          payment_method: string | null
-          payment_modality: string | null
-          payment_value: number | null
-          phone: string | null
-          products: string[]
-          segmento: string | null
-          seller_id: string | null
-          special_condition: string | null
-          specialty: string | null
-          started_at: string
-          state: string | null
-          updated_at: string
-          value: number
-          whatsapp: string | null
-          whatsapp_group: boolean
-        }
+          activation_status: string | null;
+          address: string | null;
+          billing_system: string | null;
+          cep: string | null;
+          city: string | null;
+          client_type: string;
+          clinic_name: string;
+          codigo_externo: string | null;
+          contato_nome: string | null;
+          contract_id: string | null;
+          contract_signed: boolean;
+          contract_signed_at: string | null;
+          contract_verification_source: string | null;
+          contract_verified_at: string | null;
+          contract_verified_by: string | null;
+          created_at: string;
+          created_by: string | null;
+          current_scenario: string | null;
+          document: string | null;
+          email: string | null;
+          finalized_webhook_sent_at: string | null;
+          financial_id: string | null;
+          general_notes: string | null;
+          goal: string | null;
+          has_crc: boolean | null;
+          has_facebook: boolean | null;
+          has_marketing_experience: boolean | null;
+          ic_id: string | null;
+          id: string;
+          legal_name: string | null;
+          notes: string | null;
+          onboarding_completed_at: string | null;
+          onboarding_released_at: string | null;
+          onboarding_sent: boolean;
+          paid: boolean;
+          pain: string | null;
+          payment_date: string | null;
+          payment_method: string | null;
+          payment_modality: string | null;
+          payment_value: number | null;
+          phone: string | null;
+          products: string[];
+          segmento: string | null;
+          seller_id: string | null;
+          special_condition: string | null;
+          specialty: string | null;
+          started_at: string;
+          state: string | null;
+          updated_at: string;
+          value: number;
+          whatsapp: string | null;
+          whatsapp_group: boolean;
+        };
         Insert: {
-          activation_status?: string | null
-          address?: string | null
-          billing_system?: string | null
-          cep?: string | null
-          city?: string | null
-          client_type?: string
-          clinic_name: string
-          codigo_externo?: string | null
-          contato_nome?: string | null
-          contract_id?: string | null
-          contract_signed?: boolean
-          contract_signed_at?: string | null
-          contract_verification_source?: string | null
-          contract_verified_at?: string | null
-          contract_verified_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_scenario?: string | null
-          document?: string | null
-          email?: string | null
-          finalized_webhook_sent_at?: string | null
-          financial_id?: string | null
-          general_notes?: string | null
-          goal?: string | null
-          has_crc?: boolean | null
-          has_facebook?: boolean | null
-          has_marketing_experience?: boolean | null
-          ic_id?: string | null
-          id?: string
-          legal_name?: string | null
-          notes?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_released_at?: string | null
-          onboarding_sent?: boolean
-          paid?: boolean
-          pain?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          payment_modality?: string | null
-          payment_value?: number | null
-          phone?: string | null
-          products?: string[]
-          segmento?: string | null
-          seller_id?: string | null
-          special_condition?: string | null
-          specialty?: string | null
-          started_at?: string
-          state?: string | null
-          updated_at?: string
-          value?: number
-          whatsapp?: string | null
-          whatsapp_group?: boolean
-        }
+          activation_status?: string | null;
+          address?: string | null;
+          billing_system?: string | null;
+          cep?: string | null;
+          city?: string | null;
+          client_type?: string;
+          clinic_name: string;
+          codigo_externo?: string | null;
+          contato_nome?: string | null;
+          contract_id?: string | null;
+          contract_signed?: boolean;
+          contract_signed_at?: string | null;
+          contract_verification_source?: string | null;
+          contract_verified_at?: string | null;
+          contract_verified_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          current_scenario?: string | null;
+          document?: string | null;
+          email?: string | null;
+          finalized_webhook_sent_at?: string | null;
+          financial_id?: string | null;
+          general_notes?: string | null;
+          goal?: string | null;
+          has_crc?: boolean | null;
+          has_facebook?: boolean | null;
+          has_marketing_experience?: boolean | null;
+          ic_id?: string | null;
+          id?: string;
+          legal_name?: string | null;
+          notes?: string | null;
+          onboarding_completed_at?: string | null;
+          onboarding_released_at?: string | null;
+          onboarding_sent?: boolean;
+          paid?: boolean;
+          pain?: string | null;
+          payment_date?: string | null;
+          payment_method?: string | null;
+          payment_modality?: string | null;
+          payment_value?: number | null;
+          phone?: string | null;
+          products?: string[];
+          segmento?: string | null;
+          seller_id?: string | null;
+          special_condition?: string | null;
+          specialty?: string | null;
+          started_at?: string;
+          state?: string | null;
+          updated_at?: string;
+          value?: number;
+          whatsapp?: string | null;
+          whatsapp_group?: boolean;
+        };
         Update: {
-          activation_status?: string | null
-          address?: string | null
-          billing_system?: string | null
-          cep?: string | null
-          city?: string | null
-          client_type?: string
-          clinic_name?: string
-          codigo_externo?: string | null
-          contato_nome?: string | null
-          contract_id?: string | null
-          contract_signed?: boolean
-          contract_signed_at?: string | null
-          contract_verification_source?: string | null
-          contract_verified_at?: string | null
-          contract_verified_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          current_scenario?: string | null
-          document?: string | null
-          email?: string | null
-          finalized_webhook_sent_at?: string | null
-          financial_id?: string | null
-          general_notes?: string | null
-          goal?: string | null
-          has_crc?: boolean | null
-          has_facebook?: boolean | null
-          has_marketing_experience?: boolean | null
-          ic_id?: string | null
-          id?: string
-          legal_name?: string | null
-          notes?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_released_at?: string | null
-          onboarding_sent?: boolean
-          paid?: boolean
-          pain?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          payment_modality?: string | null
-          payment_value?: number | null
-          phone?: string | null
-          products?: string[]
-          segmento?: string | null
-          seller_id?: string | null
-          special_condition?: string | null
-          specialty?: string | null
-          started_at?: string
-          state?: string | null
-          updated_at?: string
-          value?: number
-          whatsapp?: string | null
-          whatsapp_group?: boolean
-        }
-        Relationships: []
-      }
+          activation_status?: string | null;
+          address?: string | null;
+          billing_system?: string | null;
+          cep?: string | null;
+          city?: string | null;
+          client_type?: string;
+          clinic_name?: string;
+          codigo_externo?: string | null;
+          contato_nome?: string | null;
+          contract_id?: string | null;
+          contract_signed?: boolean;
+          contract_signed_at?: string | null;
+          contract_verification_source?: string | null;
+          contract_verified_at?: string | null;
+          contract_verified_by?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          current_scenario?: string | null;
+          document?: string | null;
+          email?: string | null;
+          finalized_webhook_sent_at?: string | null;
+          financial_id?: string | null;
+          general_notes?: string | null;
+          goal?: string | null;
+          has_crc?: boolean | null;
+          has_facebook?: boolean | null;
+          has_marketing_experience?: boolean | null;
+          ic_id?: string | null;
+          id?: string;
+          legal_name?: string | null;
+          notes?: string | null;
+          onboarding_completed_at?: string | null;
+          onboarding_released_at?: string | null;
+          onboarding_sent?: boolean;
+          paid?: boolean;
+          pain?: string | null;
+          payment_date?: string | null;
+          payment_method?: string | null;
+          payment_modality?: string | null;
+          payment_value?: number | null;
+          phone?: string | null;
+          products?: string[];
+          segmento?: string | null;
+          seller_id?: string | null;
+          special_condition?: string | null;
+          specialty?: string | null;
+          started_at?: string;
+          state?: string | null;
+          updated_at?: string;
+          value?: number;
+          whatsapp?: string | null;
+          whatsapp_group?: boolean;
+        };
+        Relationships: [];
+      };
       docusign_envelopes: {
         Row: {
-          assunto: string | null
-          campos: Json
-          cliente_id: string | null
-          concluido_em: string | null
-          documentos: string[]
-          envelope_id: string
-          enviado_em: string | null
-          evento_em: string | null
-          id: string
-          ignorado: boolean
-          recebido_em: string
-          remetente_email: string | null
-          signatarios: Json
-          status: string
-          updated_at: string
-          vinculado_em: string | null
-          vinculado_por: string | null
-          vinculo: string | null
-          vinculo_motivo: string | null
-        }
+          assunto: string | null;
+          campos: Json;
+          cliente_id: string | null;
+          concluido_em: string | null;
+          documentos: string[];
+          envelope_id: string;
+          enviado_em: string | null;
+          evento_em: string | null;
+          id: string;
+          ignorado: boolean;
+          recebido_em: string;
+          remetente_email: string | null;
+          signatarios: Json;
+          status: string;
+          updated_at: string;
+          vinculado_em: string | null;
+          vinculado_por: string | null;
+          vinculo: string | null;
+          vinculo_motivo: string | null;
+        };
         Insert: {
-          assunto?: string | null
-          campos?: Json
-          cliente_id?: string | null
-          concluido_em?: string | null
-          documentos?: string[]
-          envelope_id: string
-          enviado_em?: string | null
-          evento_em?: string | null
-          id?: string
-          ignorado?: boolean
-          recebido_em?: string
-          remetente_email?: string | null
-          signatarios?: Json
-          status: string
-          updated_at?: string
-          vinculado_em?: string | null
-          vinculado_por?: string | null
-          vinculo?: string | null
-          vinculo_motivo?: string | null
-        }
+          assunto?: string | null;
+          campos?: Json;
+          cliente_id?: string | null;
+          concluido_em?: string | null;
+          documentos?: string[];
+          envelope_id: string;
+          enviado_em?: string | null;
+          evento_em?: string | null;
+          id?: string;
+          ignorado?: boolean;
+          recebido_em?: string;
+          remetente_email?: string | null;
+          signatarios?: Json;
+          status: string;
+          updated_at?: string;
+          vinculado_em?: string | null;
+          vinculado_por?: string | null;
+          vinculo?: string | null;
+          vinculo_motivo?: string | null;
+        };
         Update: {
-          assunto?: string | null
-          campos?: Json
-          cliente_id?: string | null
-          concluido_em?: string | null
-          documentos?: string[]
-          envelope_id?: string
-          enviado_em?: string | null
-          evento_em?: string | null
-          id?: string
-          ignorado?: boolean
-          recebido_em?: string
-          remetente_email?: string | null
-          signatarios?: Json
-          status?: string
-          updated_at?: string
-          vinculado_em?: string | null
-          vinculado_por?: string | null
-          vinculo?: string | null
-          vinculo_motivo?: string | null
-        }
-        Relationships: []
-      }
+          assunto?: string | null;
+          campos?: Json;
+          cliente_id?: string | null;
+          concluido_em?: string | null;
+          documentos?: string[];
+          envelope_id?: string;
+          enviado_em?: string | null;
+          evento_em?: string | null;
+          id?: string;
+          ignorado?: boolean;
+          recebido_em?: string;
+          remetente_email?: string | null;
+          signatarios?: Json;
+          status?: string;
+          updated_at?: string;
+          vinculado_em?: string | null;
+          vinculado_por?: string | null;
+          vinculo?: string | null;
+          vinculo_motivo?: string | null;
+        };
+        Relationships: [];
+      };
       feriados: {
         Row: {
-          data: string
-          nome: string
-        }
+          data: string;
+          nome: string;
+        };
         Insert: {
-          data: string
-          nome: string
-        }
+          data: string;
+          nome: string;
+        };
         Update: {
-          data?: string
-          nome?: string
-        }
-        Relationships: []
-      }
+          data?: string;
+          nome?: string;
+        };
+        Relationships: [];
+      };
       modelo_checklist: {
         Row: {
-          etapa_id: string
-          id: string
-          obrigatorio: boolean
-          ordem: number
-          texto: string
-        }
+          etapa_id: string;
+          id: string;
+          obrigatorio: boolean;
+          ordem: number;
+          texto: string;
+        };
         Insert: {
-          etapa_id: string
-          id?: string
-          obrigatorio?: boolean
-          ordem?: number
-          texto: string
-        }
+          etapa_id: string;
+          id?: string;
+          obrigatorio?: boolean;
+          ordem?: number;
+          texto: string;
+        };
         Update: {
-          etapa_id?: string
-          id?: string
-          obrigatorio?: boolean
-          ordem?: number
-          texto?: string
-        }
-        Relationships: []
-      }
+          etapa_id?: string;
+          id?: string;
+          obrigatorio?: boolean;
+          ordem?: number;
+          texto?: string;
+        };
+        Relationships: [];
+      };
       modelo_etapas: {
         Row: {
-          descricao: string | null
-          exige_checklist: boolean
-          fase_id: string | null
-          id: string
-          modelo_id: string
-          nome: string
-          obrigatoria: boolean
-          ordem: number
-          papel_id: string | null
-          pausa_sla_aguardando_cliente: boolean
-          principal: boolean
-          sla_dias: number
-        }
+          descricao: string | null;
+          exige_checklist: boolean;
+          fase_id: string | null;
+          id: string;
+          modelo_id: string;
+          nome: string;
+          obrigatoria: boolean;
+          ordem: number;
+          papel_id: string | null;
+          pausa_sla_aguardando_cliente: boolean;
+          principal: boolean;
+          sla_dias: number;
+        };
         Insert: {
-          descricao?: string | null
-          exige_checklist?: boolean
-          fase_id?: string | null
-          id?: string
-          modelo_id: string
-          nome: string
-          obrigatoria?: boolean
-          ordem?: number
-          papel_id?: string | null
-          pausa_sla_aguardando_cliente?: boolean
-          principal?: boolean
-          sla_dias?: number
-        }
+          descricao?: string | null;
+          exige_checklist?: boolean;
+          fase_id?: string | null;
+          id?: string;
+          modelo_id: string;
+          nome: string;
+          obrigatoria?: boolean;
+          ordem?: number;
+          papel_id?: string | null;
+          pausa_sla_aguardando_cliente?: boolean;
+          principal?: boolean;
+          sla_dias?: number;
+        };
         Update: {
-          descricao?: string | null
-          exige_checklist?: boolean
-          fase_id?: string | null
-          id?: string
-          modelo_id?: string
-          nome?: string
-          obrigatoria?: boolean
-          ordem?: number
-          papel_id?: string | null
-          pausa_sla_aguardando_cliente?: boolean
-          principal?: boolean
-          sla_dias?: number
-        }
-        Relationships: []
-      }
+          descricao?: string | null;
+          exige_checklist?: boolean;
+          fase_id?: string | null;
+          id?: string;
+          modelo_id?: string;
+          nome?: string;
+          obrigatoria?: boolean;
+          ordem?: number;
+          papel_id?: string | null;
+          pausa_sla_aguardando_cliente?: boolean;
+          principal?: boolean;
+          sla_dias?: number;
+        };
+        Relationships: [];
+      };
       modelo_fases: {
         Row: {
-          cor: string
-          id: string
-          modelo_id: string
-          nome: string
-          ordem: number
-        }
+          cor: string;
+          id: string;
+          modelo_id: string;
+          nome: string;
+          ordem: number;
+        };
         Insert: {
-          cor?: string
-          id?: string
-          modelo_id: string
-          nome: string
-          ordem?: number
-        }
+          cor?: string;
+          id?: string;
+          modelo_id: string;
+          nome: string;
+          ordem?: number;
+        };
         Update: {
-          cor?: string
-          id?: string
-          modelo_id?: string
-          nome?: string
-          ordem?: number
-        }
-        Relationships: []
-      }
+          cor?: string;
+          id?: string;
+          modelo_id?: string;
+          nome?: string;
+          ordem?: number;
+        };
+        Relationships: [];
+      };
       modelos: {
         Row: {
-          calendario: string
-          created_by: string | null
-          id: string
-          limiar_risco_pct: number
-          nome: string
-          produto_id: string
-          status: string
-          updated_at: string
-          versao: number
-        }
+          calendario: string;
+          created_by: string | null;
+          id: string;
+          limiar_risco_pct: number;
+          nome: string;
+          produto_id: string;
+          status: string;
+          updated_at: string;
+          versao: number;
+        };
         Insert: {
-          calendario?: string
-          created_by?: string | null
-          id?: string
-          limiar_risco_pct?: number
-          nome: string
-          produto_id: string
-          status?: string
-          updated_at?: string
-          versao?: number
-        }
+          calendario?: string;
+          created_by?: string | null;
+          id?: string;
+          limiar_risco_pct?: number;
+          nome: string;
+          produto_id: string;
+          status?: string;
+          updated_at?: string;
+          versao?: number;
+        };
         Update: {
-          calendario?: string
-          created_by?: string | null
-          id?: string
-          limiar_risco_pct?: number
-          nome?: string
-          produto_id?: string
-          status?: string
-          updated_at?: string
-          versao?: number
-        }
-        Relationships: []
-      }
+          calendario?: string;
+          created_by?: string | null;
+          id?: string;
+          limiar_risco_pct?: number;
+          nome?: string;
+          produto_id?: string;
+          status?: string;
+          updated_at?: string;
+          versao?: number;
+        };
+        Relationships: [];
+      };
       onboarding_checklist: {
         Row: {
-          feito: boolean
-          feito_em: string | null
-          feito_por: string | null
-          id: string
-          obrigatorio: boolean
-          onboarding_etapa_id: string
-          ordem: number
-          texto: string
-        }
+          feito: boolean;
+          feito_em: string | null;
+          feito_por: string | null;
+          id: string;
+          obrigatorio: boolean;
+          onboarding_etapa_id: string;
+          ordem: number;
+          texto: string;
+        };
         Insert: {
-          feito?: boolean
-          feito_em?: string | null
-          feito_por?: string | null
-          id?: string
-          obrigatorio?: boolean
-          onboarding_etapa_id: string
-          ordem?: number
-          texto: string
-        }
+          feito?: boolean;
+          feito_em?: string | null;
+          feito_por?: string | null;
+          id?: string;
+          obrigatorio?: boolean;
+          onboarding_etapa_id: string;
+          ordem?: number;
+          texto: string;
+        };
         Update: {
-          feito?: boolean
-          feito_em?: string | null
-          feito_por?: string | null
-          id?: string
-          obrigatorio?: boolean
-          onboarding_etapa_id?: string
-          ordem?: number
-          texto?: string
-        }
-        Relationships: []
-      }
+          feito?: boolean;
+          feito_em?: string | null;
+          feito_por?: string | null;
+          id?: string;
+          obrigatorio?: boolean;
+          onboarding_etapa_id?: string;
+          ordem?: number;
+          texto?: string;
+        };
+        Relationships: [];
+      };
       onboarding_etapas: {
         Row: {
-          concluida_em: string | null
-          concluida_por: string | null
-          descricao: string | null
-          dias_pausados: number
-          exige_checklist: boolean
-          fase_cor: string | null
-          fase_nome: string | null
-          id: string
-          iniciada_em: string | null
-          modelo_etapa_id: string | null
-          motivo: string | null
-          nome: string
-          obrigatoria: boolean
-          onboarding_id: string
-          ordem: number
-          papel_id: string | null
-          pausa_sla_aguardando_cliente: boolean
-          pausada_desde: string | null
-          prazo_em: string | null
-          principal: boolean
-          responsavel_id: string | null
-          sla_dias: number
-          status: string
-        }
+          concluida_em: string | null;
+          concluida_por: string | null;
+          descricao: string | null;
+          dias_pausados: number;
+          exige_checklist: boolean;
+          fase_cor: string | null;
+          fase_nome: string | null;
+          id: string;
+          iniciada_em: string | null;
+          modelo_etapa_id: string | null;
+          motivo: string | null;
+          nome: string;
+          obrigatoria: boolean;
+          onboarding_id: string;
+          ordem: number;
+          papel_id: string | null;
+          pausa_sla_aguardando_cliente: boolean;
+          pausada_desde: string | null;
+          prazo_em: string | null;
+          principal: boolean;
+          responsavel_id: string | null;
+          sla_dias: number;
+          status: string;
+        };
         Insert: {
-          concluida_em?: string | null
-          concluida_por?: string | null
-          descricao?: string | null
-          dias_pausados?: number
-          exige_checklist?: boolean
-          fase_cor?: string | null
-          fase_nome?: string | null
-          id?: string
-          iniciada_em?: string | null
-          modelo_etapa_id?: string | null
-          motivo?: string | null
-          nome: string
-          obrigatoria?: boolean
-          onboarding_id: string
-          ordem?: number
-          papel_id?: string | null
-          pausa_sla_aguardando_cliente?: boolean
-          pausada_desde?: string | null
-          prazo_em?: string | null
-          principal?: boolean
-          responsavel_id?: string | null
-          sla_dias?: number
-          status?: string
-        }
+          concluida_em?: string | null;
+          concluida_por?: string | null;
+          descricao?: string | null;
+          dias_pausados?: number;
+          exige_checklist?: boolean;
+          fase_cor?: string | null;
+          fase_nome?: string | null;
+          id?: string;
+          iniciada_em?: string | null;
+          modelo_etapa_id?: string | null;
+          motivo?: string | null;
+          nome: string;
+          obrigatoria?: boolean;
+          onboarding_id: string;
+          ordem?: number;
+          papel_id?: string | null;
+          pausa_sla_aguardando_cliente?: boolean;
+          pausada_desde?: string | null;
+          prazo_em?: string | null;
+          principal?: boolean;
+          responsavel_id?: string | null;
+          sla_dias?: number;
+          status?: string;
+        };
         Update: {
-          concluida_em?: string | null
-          concluida_por?: string | null
-          descricao?: string | null
-          dias_pausados?: number
-          exige_checklist?: boolean
-          fase_cor?: string | null
-          fase_nome?: string | null
-          id?: string
-          iniciada_em?: string | null
-          modelo_etapa_id?: string | null
-          motivo?: string | null
-          nome?: string
-          obrigatoria?: boolean
-          onboarding_id?: string
-          ordem?: number
-          papel_id?: string | null
-          pausa_sla_aguardando_cliente?: boolean
-          pausada_desde?: string | null
-          prazo_em?: string | null
-          principal?: boolean
-          responsavel_id?: string | null
-          sla_dias?: number
-          status?: string
-        }
-        Relationships: []
-      }
+          concluida_em?: string | null;
+          concluida_por?: string | null;
+          descricao?: string | null;
+          dias_pausados?: number;
+          exige_checklist?: boolean;
+          fase_cor?: string | null;
+          fase_nome?: string | null;
+          id?: string;
+          iniciada_em?: string | null;
+          modelo_etapa_id?: string | null;
+          motivo?: string | null;
+          nome?: string;
+          obrigatoria?: boolean;
+          onboarding_id?: string;
+          ordem?: number;
+          papel_id?: string | null;
+          pausa_sla_aguardando_cliente?: boolean;
+          pausada_desde?: string | null;
+          prazo_em?: string | null;
+          principal?: boolean;
+          responsavel_id?: string | null;
+          sla_dias?: number;
+          status?: string;
+        };
+        Relationships: [];
+      };
       onboarding_eventos: {
         Row: {
-          created_at: string
-          de: string | null
-          detalhe: string | null
-          id: string
-          onboarding_etapa_id: string | null
-          onboarding_id: string
-          para: string | null
-          tipo: string
-          user_id: string | null
-        }
+          created_at: string;
+          de: string | null;
+          detalhe: string | null;
+          id: string;
+          onboarding_etapa_id: string | null;
+          onboarding_id: string;
+          para: string | null;
+          tipo: string;
+          user_id: string | null;
+        };
         Insert: {
-          created_at?: string
-          de?: string | null
-          detalhe?: string | null
-          id?: string
-          onboarding_etapa_id?: string | null
-          onboarding_id: string
-          para?: string | null
-          tipo: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          de?: string | null;
+          detalhe?: string | null;
+          id?: string;
+          onboarding_etapa_id?: string | null;
+          onboarding_id: string;
+          para?: string | null;
+          tipo: string;
+          user_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          de?: string | null
-          detalhe?: string | null
-          id?: string
-          onboarding_etapa_id?: string | null
-          onboarding_id?: string
-          para?: string | null
-          tipo?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          de?: string | null;
+          detalhe?: string | null;
+          id?: string;
+          onboarding_etapa_id?: string | null;
+          onboarding_id?: string;
+          para?: string | null;
+          tipo?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       onboarding_notas: {
         Row: {
-          created_at: string
-          id: string
-          onboarding_etapa_id: string | null
-          onboarding_id: string
-          texto: string
-          user_id: string | null
-        }
+          created_at: string;
+          id: string;
+          onboarding_etapa_id: string | null;
+          onboarding_id: string;
+          texto: string;
+          user_id: string | null;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          onboarding_etapa_id?: string | null
-          onboarding_id: string
-          texto: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          id?: string;
+          onboarding_etapa_id?: string | null;
+          onboarding_id: string;
+          texto: string;
+          user_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          onboarding_etapa_id?: string | null
-          onboarding_id?: string
-          texto?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          id?: string;
+          onboarding_etapa_id?: string | null;
+          onboarding_id?: string;
+          texto?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       onboarding_responsaveis: {
         Row: {
-          onboarding_id: string
-          papel_id: string
-          user_id: string
-        }
+          onboarding_id: string;
+          papel_id: string;
+          user_id: string;
+        };
         Insert: {
-          onboarding_id: string
-          papel_id: string
-          user_id: string
-        }
+          onboarding_id: string;
+          papel_id: string;
+          user_id: string;
+        };
         Update: {
-          onboarding_id?: string
-          papel_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          onboarding_id?: string;
+          papel_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       onboardings: {
         Row: {
-          campos: Json
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          data_inicio: string
-          data_termino: string | null
-          id: string
-          modelo_id: string | null
-          modelo_versao: number | null
-          motivo: string | null
-          previsao_termino: string | null
-          produto_id: string
-          status: string
-        }
+          campos: Json;
+          cliente_id: string;
+          created_at: string;
+          created_by: string | null;
+          data_inicio: string;
+          data_termino: string | null;
+          id: string;
+          modelo_id: string | null;
+          modelo_versao: number | null;
+          motivo: string | null;
+          previsao_termino: string | null;
+          produto_id: string;
+          status: string;
+        };
         Insert: {
-          campos?: Json
-          cliente_id: string
-          created_at?: string
-          created_by?: string | null
-          data_inicio?: string
-          data_termino?: string | null
-          id?: string
-          modelo_id?: string | null
-          modelo_versao?: number | null
-          motivo?: string | null
-          previsao_termino?: string | null
-          produto_id: string
-          status?: string
-        }
+          campos?: Json;
+          cliente_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          data_inicio?: string;
+          data_termino?: string | null;
+          id?: string;
+          modelo_id?: string | null;
+          modelo_versao?: number | null;
+          motivo?: string | null;
+          previsao_termino?: string | null;
+          produto_id: string;
+          status?: string;
+        };
         Update: {
-          campos?: Json
-          cliente_id?: string
-          created_at?: string
-          created_by?: string | null
-          data_inicio?: string
-          data_termino?: string | null
-          id?: string
-          modelo_id?: string | null
-          modelo_versao?: number | null
-          motivo?: string | null
-          previsao_termino?: string | null
-          produto_id?: string
-          status?: string
-        }
-        Relationships: []
-      }
+          campos?: Json;
+          cliente_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          data_inicio?: string;
+          data_termino?: string | null;
+          id?: string;
+          modelo_id?: string | null;
+          modelo_versao?: number | null;
+          motivo?: string | null;
+          previsao_termino?: string | null;
+          produto_id?: string;
+          status?: string;
+        };
+        Relationships: [];
+      };
       papeis: {
         Row: {
-          cor: string
-          id: string
-          nome: string
-        }
+          cor: string;
+          id: string;
+          nome: string;
+        };
         Insert: {
-          cor?: string
-          id?: string
-          nome: string
-        }
+          cor?: string;
+          id?: string;
+          nome: string;
+        };
         Update: {
-          cor?: string
-          id?: string
-          nome?: string
-        }
-        Relationships: []
-      }
+          cor?: string;
+          id?: string;
+          nome?: string;
+        };
+        Relationships: [];
+      };
       produto_campos: {
         Row: {
-          chave: string
-          editavel_por: string[]
-          id: string
-          obrigatorio: boolean
-          opcoes: Json
-          ordem: number
-          produto_id: string
-          rotulo: string
-          tipo: string
-          visivel_padrao: boolean
-        }
+          chave: string;
+          editavel_por: string[];
+          id: string;
+          obrigatorio: boolean;
+          opcoes: Json;
+          ordem: number;
+          produto_id: string;
+          rotulo: string;
+          tipo: string;
+          visivel_padrao: boolean;
+        };
         Insert: {
-          chave: string
-          editavel_por?: string[]
-          id?: string
-          obrigatorio?: boolean
-          opcoes?: Json
-          ordem?: number
-          produto_id: string
-          rotulo: string
-          tipo: string
-          visivel_padrao?: boolean
-        }
+          chave: string;
+          editavel_por?: string[];
+          id?: string;
+          obrigatorio?: boolean;
+          opcoes?: Json;
+          ordem?: number;
+          produto_id: string;
+          rotulo: string;
+          tipo: string;
+          visivel_padrao?: boolean;
+        };
         Update: {
-          chave?: string
-          editavel_por?: string[]
-          id?: string
-          obrigatorio?: boolean
-          opcoes?: Json
-          ordem?: number
-          produto_id?: string
-          rotulo?: string
-          tipo?: string
-          visivel_padrao?: boolean
-        }
-        Relationships: []
-      }
+          chave?: string;
+          editavel_por?: string[];
+          id?: string;
+          obrigatorio?: boolean;
+          opcoes?: Json;
+          ordem?: number;
+          produto_id?: string;
+          rotulo?: string;
+          tipo?: string;
+          visivel_padrao?: boolean;
+        };
+        Relationships: [];
+      };
       produto_gestores: {
         Row: {
-          produto_id: string
-          user_id: string
-        }
+          produto_id: string;
+          user_id: string;
+        };
         Insert: {
-          produto_id: string
-          user_id: string
-        }
+          produto_id: string;
+          user_id: string;
+        };
         Update: {
-          produto_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
+          produto_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       produto_onboardings: {
         Row: {
-          created_at: string
-          onboarding_produto_id: string
-          produto_id: string
-        }
+          created_at: string;
+          onboarding_produto_id: string;
+          produto_id: string;
+        };
         Insert: {
-          created_at?: string
-          onboarding_produto_id: string
-          produto_id: string
-        }
+          created_at?: string;
+          onboarding_produto_id: string;
+          produto_id: string;
+        };
         Update: {
-          created_at?: string
-          onboarding_produto_id?: string
-          produto_id?: string
-        }
-        Relationships: []
-      }
+          created_at?: string;
+          onboarding_produto_id?: string;
+          produto_id?: string;
+        };
+        Relationships: [];
+      };
       produtos: {
         Row: {
-          ativo: boolean
-          cor: string
-          id: string
-          nome: string
-        }
+          ativo: boolean;
+          cor: string;
+          id: string;
+          nome: string;
+        };
         Insert: {
-          ativo?: boolean
-          cor?: string
-          id?: string
-          nome: string
-        }
+          ativo?: boolean;
+          cor?: string;
+          id?: string;
+          nome: string;
+        };
         Update: {
-          ativo?: boolean
-          cor?: string
-          id?: string
-          nome?: string
-        }
-        Relationships: []
-      }
+          ativo?: boolean;
+          cor?: string;
+          id?: string;
+          nome?: string;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
-          ativo: boolean
-          avatar_url: string | null
-          created_at: string
-          email: string
-          full_name: string
-          id: string
-        }
+          ativo: boolean;
+          avatar_url: string | null;
+          created_at: string;
+          email: string;
+          full_name: string;
+          id: string;
+        };
         Insert: {
-          ativo?: boolean
-          avatar_url?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string
-          id: string
-        }
+          ativo?: boolean;
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string;
+          full_name?: string;
+          id: string;
+        };
         Update: {
-          ativo?: boolean
-          avatar_url?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string
-          id?: string
-        }
-        Relationships: []
-      }
+          ativo?: boolean;
+          avatar_url?: string | null;
+          created_at?: string;
+          email?: string;
+          full_name?: string;
+          id?: string;
+        };
+        Relationships: [];
+      };
       user_roles: {
         Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          id: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
+          id?: string;
+          role: Database["public"]["Enums"]["app_role"];
+          user_id: string;
+        };
         Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+          id?: string;
+          role?: Database["public"]["Enums"]["app_role"];
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       visoes: {
         Row: {
-          config: Json
-          dono_id: string
-          id: string
-          nome: string
-          padrao_do_produto: boolean
-          produto_id: string | null
-          publica: boolean
-        }
+          config: Json;
+          dono_id: string;
+          id: string;
+          nome: string;
+          padrao_do_produto: boolean;
+          produto_id: string | null;
+          publica: boolean;
+        };
         Insert: {
-          config?: Json
-          dono_id?: string
-          id?: string
-          nome: string
-          padrao_do_produto?: boolean
-          produto_id?: string | null
-          publica?: boolean
-        }
+          config?: Json;
+          dono_id?: string;
+          id?: string;
+          nome: string;
+          padrao_do_produto?: boolean;
+          produto_id?: string | null;
+          publica?: boolean;
+        };
         Update: {
-          config?: Json
-          dono_id?: string
-          id?: string
-          nome?: string
-          padrao_do_produto?: boolean
-          produto_id?: string | null
-          publica?: boolean
-        }
-        Relationships: []
-      }
+          config?: Json;
+          dono_id?: string;
+          id?: string;
+          nome?: string;
+          padrao_do_produto?: boolean;
+          produto_id?: string | null;
+          publica?: boolean;
+        };
+        Relationships: [];
+      };
       vendas_recebidas: {
         Row: {
-          chave: string
-          cliente_id: string | null
-          cnpj: string | null
-          condicao_pagamento: string | null
-          curso_acesso: Json
-          email: string | null
-          id: string
-          id_cliente: string | null
-          id_cliente_appcrc: string | null
-          id_cliente_smarttv: string | null
-          meio_pagamento: string | null
-          motivo_descarte: string | null
-          nome: string | null
-          payload: Json
-          recebido_em: string
-          revisado_em: string | null
-          revisado_por: string | null
-          status: string
-          telefone: string | null
-          tipo: string | null
-          vendedor: string | null
-          vendedor_email: string | null
-          whatsapp: string | null
-          whatsapp2: string | null
-        }
+          chave: string;
+          cliente_id: string | null;
+          cnpj: string | null;
+          condicao_pagamento: string | null;
+          curso_acesso: Json;
+          email: string | null;
+          id: string;
+          id_cliente: string | null;
+          id_cliente_appcrc: string | null;
+          id_cliente_smarttv: string | null;
+          meio_pagamento: string | null;
+          motivo_descarte: string | null;
+          nome: string | null;
+          payload: Json;
+          recebido_em: string;
+          revisado_em: string | null;
+          revisado_por: string | null;
+          status: string;
+          telefone: string | null;
+          tipo: string | null;
+          vendedor: string | null;
+          vendedor_email: string | null;
+          whatsapp: string | null;
+          whatsapp2: string | null;
+        };
         Insert: {
-          chave: string
-          cliente_id?: string | null
-          cnpj?: string | null
-          condicao_pagamento?: string | null
-          curso_acesso?: Json
-          email?: string | null
-          id?: string
-          id_cliente?: string | null
-          id_cliente_appcrc?: string | null
-          id_cliente_smarttv?: string | null
-          meio_pagamento?: string | null
-          motivo_descarte?: string | null
-          nome?: string | null
-          payload: Json
-          recebido_em?: string
-          revisado_em?: string | null
-          revisado_por?: string | null
-          status?: string
-          telefone?: string | null
-          tipo?: string | null
-          vendedor?: string | null
-          vendedor_email?: string | null
-          whatsapp?: string | null
-          whatsapp2?: string | null
-        }
+          chave: string;
+          cliente_id?: string | null;
+          cnpj?: string | null;
+          condicao_pagamento?: string | null;
+          curso_acesso?: Json;
+          email?: string | null;
+          id?: string;
+          id_cliente?: string | null;
+          id_cliente_appcrc?: string | null;
+          id_cliente_smarttv?: string | null;
+          meio_pagamento?: string | null;
+          motivo_descarte?: string | null;
+          nome?: string | null;
+          payload: Json;
+          recebido_em?: string;
+          revisado_em?: string | null;
+          revisado_por?: string | null;
+          status?: string;
+          telefone?: string | null;
+          tipo?: string | null;
+          vendedor?: string | null;
+          vendedor_email?: string | null;
+          whatsapp?: string | null;
+          whatsapp2?: string | null;
+        };
         Update: {
-          chave?: string
-          cliente_id?: string | null
-          cnpj?: string | null
-          condicao_pagamento?: string | null
-          curso_acesso?: Json
-          email?: string | null
-          id?: string
-          id_cliente?: string | null
-          id_cliente_appcrc?: string | null
-          id_cliente_smarttv?: string | null
-          meio_pagamento?: string | null
-          motivo_descarte?: string | null
-          nome?: string | null
-          payload?: Json
-          recebido_em?: string
-          revisado_em?: string | null
-          revisado_por?: string | null
-          status?: string
-          telefone?: string | null
-          tipo?: string | null
-          vendedor?: string | null
-          vendedor_email?: string | null
-          whatsapp?: string | null
-          whatsapp2?: string | null
-        }
-        Relationships: []
-      }
+          chave?: string;
+          cliente_id?: string | null;
+          cnpj?: string | null;
+          condicao_pagamento?: string | null;
+          curso_acesso?: Json;
+          email?: string | null;
+          id?: string;
+          id_cliente?: string | null;
+          id_cliente_appcrc?: string | null;
+          id_cliente_smarttv?: string | null;
+          meio_pagamento?: string | null;
+          motivo_descarte?: string | null;
+          nome?: string | null;
+          payload?: Json;
+          recebido_em?: string;
+          revisado_em?: string | null;
+          revisado_por?: string | null;
+          status?: string;
+          telefone?: string | null;
+          tipo?: string | null;
+          vendedor?: string | null;
+          vendedor_email?: string | null;
+          whatsapp?: string | null;
+          whatsapp2?: string | null;
+        };
+        Relationships: [];
+      };
       retencao_atividades: {
         Row: {
-          canal: string | null
-          caso_id: string
-          created_at: string
-          de: string | null
-          id: string
-          para: string | null
-          resultado: string | null
-          texto: string | null
-          tipo: string
-          user_id: string | null
-        }
+          canal: string | null;
+          caso_id: string;
+          created_at: string;
+          de: string | null;
+          id: string;
+          para: string | null;
+          resultado: string | null;
+          texto: string | null;
+          tipo: string;
+          user_id: string | null;
+        };
         Insert: {
-          canal?: string | null
-          caso_id: string
-          created_at?: string
-          de?: string | null
-          id?: string
-          para?: string | null
-          resultado?: string | null
-          texto?: string | null
-          tipo: string
-          user_id?: string | null
-        }
+          canal?: string | null;
+          caso_id: string;
+          created_at?: string;
+          de?: string | null;
+          id?: string;
+          para?: string | null;
+          resultado?: string | null;
+          texto?: string | null;
+          tipo: string;
+          user_id?: string | null;
+        };
         Update: {
-          canal?: string | null
-          caso_id?: string
-          created_at?: string
-          de?: string | null
-          id?: string
-          para?: string | null
-          resultado?: string | null
-          texto?: string | null
-          tipo?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+          canal?: string | null;
+          caso_id?: string;
+          created_at?: string;
+          de?: string | null;
+          id?: string;
+          para?: string | null;
+          resultado?: string | null;
+          texto?: string | null;
+          tipo?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       retencao_casos: {
         Row: {
-          anotacoes: Json
-          arquivado: boolean
-          arquivado_em: string | null
-          arquivado_motivo: string | null
-          arquivado_por: string | null
-          cliente_nome: string | null
-          created_at: string
-          criado_por_nome: string | null
-          dados: Json
-          data_finalizacao: string | null
-          data_preenchimento: string | null
-          data_solicitacao: string
-          em_andamento_desde: string | null
-          email: string | null
-          encerrado_em: string | null
-          finalizado_por_nome: string | null
-          formulario_preenchido: boolean | null
-          id: string
-          id_appcrc: string | null
-          link: string | null
-          motivo_api: string | null
-          motivo_detalhe: string | null
-          observacao: string | null
-          origem_id: string
-          prazo_resolucao: string | null
-          primeiro_contato_api: string | null
-          primeiro_contato_em: string | null
-          responsavel_id: string | null
-          servicos: Json
-          servicos_restantes: string | null
-          sincronizado_em: string
-          solicitante: string | null
-          status: string
-          status_api: string | null
-          tags: string[]
-          telefone: string | null
-          tipo_finalizacao: string | null
-          updated_at: string
-        }
+          anotacoes: Json;
+          arquivado: boolean;
+          arquivado_em: string | null;
+          arquivado_motivo: string | null;
+          arquivado_por: string | null;
+          cliente_nome: string | null;
+          created_at: string;
+          criado_por_nome: string | null;
+          dados: Json;
+          data_finalizacao: string | null;
+          data_preenchimento: string | null;
+          data_solicitacao: string;
+          em_andamento_desde: string | null;
+          email: string | null;
+          encerrado_em: string | null;
+          finalizado_por_nome: string | null;
+          formulario_preenchido: boolean | null;
+          id: string;
+          id_appcrc: string | null;
+          link: string | null;
+          motivo_api: string | null;
+          motivo_detalhe: string | null;
+          observacao: string | null;
+          origem_id: string;
+          prazo_resolucao: string | null;
+          primeiro_contato_api: string | null;
+          primeiro_contato_em: string | null;
+          responsavel_id: string | null;
+          servicos: Json;
+          servicos_restantes: string | null;
+          sincronizado_em: string;
+          solicitante: string | null;
+          status: string;
+          status_api: string | null;
+          tags: string[];
+          telefone: string | null;
+          tipo_finalizacao: string | null;
+          updated_at: string;
+        };
         Insert: {
-          anotacoes?: Json
-          arquivado?: boolean
-          arquivado_em?: string | null
-          arquivado_motivo?: string | null
-          arquivado_por?: string | null
-          cliente_nome?: string | null
-          created_at?: string
-          criado_por_nome?: string | null
-          dados?: Json
-          data_finalizacao?: string | null
-          data_preenchimento?: string | null
-          data_solicitacao: string
-          em_andamento_desde?: string | null
-          email?: string | null
-          encerrado_em?: string | null
-          finalizado_por_nome?: string | null
-          formulario_preenchido?: boolean | null
-          id?: string
-          id_appcrc?: string | null
-          link?: string | null
-          motivo_api?: string | null
-          motivo_detalhe?: string | null
-          observacao?: string | null
-          origem_id: string
-          prazo_resolucao?: string | null
-          primeiro_contato_api?: string | null
-          primeiro_contato_em?: string | null
-          responsavel_id?: string | null
-          servicos?: Json
-          servicos_restantes?: string | null
-          sincronizado_em?: string
-          solicitante?: string | null
-          status?: string
-          status_api?: string | null
-          tags?: string[]
-          telefone?: string | null
-          tipo_finalizacao?: string | null
-          updated_at?: string
-        }
+          anotacoes?: Json;
+          arquivado?: boolean;
+          arquivado_em?: string | null;
+          arquivado_motivo?: string | null;
+          arquivado_por?: string | null;
+          cliente_nome?: string | null;
+          created_at?: string;
+          criado_por_nome?: string | null;
+          dados?: Json;
+          data_finalizacao?: string | null;
+          data_preenchimento?: string | null;
+          data_solicitacao: string;
+          em_andamento_desde?: string | null;
+          email?: string | null;
+          encerrado_em?: string | null;
+          finalizado_por_nome?: string | null;
+          formulario_preenchido?: boolean | null;
+          id?: string;
+          id_appcrc?: string | null;
+          link?: string | null;
+          motivo_api?: string | null;
+          motivo_detalhe?: string | null;
+          observacao?: string | null;
+          origem_id: string;
+          prazo_resolucao?: string | null;
+          primeiro_contato_api?: string | null;
+          primeiro_contato_em?: string | null;
+          responsavel_id?: string | null;
+          servicos?: Json;
+          servicos_restantes?: string | null;
+          sincronizado_em?: string;
+          solicitante?: string | null;
+          status?: string;
+          status_api?: string | null;
+          tags?: string[];
+          telefone?: string | null;
+          tipo_finalizacao?: string | null;
+          updated_at?: string;
+        };
         Update: {
-          anotacoes?: Json
-          arquivado?: boolean
-          arquivado_em?: string | null
-          arquivado_motivo?: string | null
-          arquivado_por?: string | null
-          cliente_nome?: string | null
-          created_at?: string
-          criado_por_nome?: string | null
-          dados?: Json
-          data_finalizacao?: string | null
-          data_preenchimento?: string | null
-          data_solicitacao?: string
-          em_andamento_desde?: string | null
-          email?: string | null
-          encerrado_em?: string | null
-          finalizado_por_nome?: string | null
-          formulario_preenchido?: boolean | null
-          id?: string
-          id_appcrc?: string | null
-          link?: string | null
-          motivo_api?: string | null
-          motivo_detalhe?: string | null
-          observacao?: string | null
-          origem_id?: string
-          prazo_resolucao?: string | null
-          primeiro_contato_api?: string | null
-          primeiro_contato_em?: string | null
-          responsavel_id?: string | null
-          servicos?: Json
-          servicos_restantes?: string | null
-          sincronizado_em?: string
-          solicitante?: string | null
-          status?: string
-          status_api?: string | null
-          tags?: string[]
-          telefone?: string | null
-          tipo_finalizacao?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
+          anotacoes?: Json;
+          arquivado?: boolean;
+          arquivado_em?: string | null;
+          arquivado_motivo?: string | null;
+          arquivado_por?: string | null;
+          cliente_nome?: string | null;
+          created_at?: string;
+          criado_por_nome?: string | null;
+          dados?: Json;
+          data_finalizacao?: string | null;
+          data_preenchimento?: string | null;
+          data_solicitacao?: string;
+          em_andamento_desde?: string | null;
+          email?: string | null;
+          encerrado_em?: string | null;
+          finalizado_por_nome?: string | null;
+          formulario_preenchido?: boolean | null;
+          id?: string;
+          id_appcrc?: string | null;
+          link?: string | null;
+          motivo_api?: string | null;
+          motivo_detalhe?: string | null;
+          observacao?: string | null;
+          origem_id?: string;
+          prazo_resolucao?: string | null;
+          primeiro_contato_api?: string | null;
+          primeiro_contato_em?: string | null;
+          responsavel_id?: string | null;
+          servicos?: Json;
+          servicos_restantes?: string | null;
+          sincronizado_em?: string;
+          solicitante?: string | null;
+          status?: string;
+          status_api?: string | null;
+          tags?: string[];
+          telefone?: string | null;
+          tipo_finalizacao?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      clientes_base_sincronizacoes: {
+        Row: {
+          ativos: number;
+          entradas: number;
+          erro: string | null;
+          id: string;
+          iniciado_em: string;
+          ok: boolean;
+          origem: string;
+          recebidos: number;
+          saidas: number;
+        };
+        Insert: {
+          ativos?: number;
+          entradas?: number;
+          erro?: string | null;
+          id?: string;
+          iniciado_em?: string;
+          ok: boolean;
+          origem?: string;
+          recebidos?: number;
+          saidas?: number;
+        };
+        Update: {
+          ativos?: number;
+          entradas?: number;
+          erro?: string | null;
+          id?: string;
+          iniciado_em?: string;
+          ok?: boolean;
+          origem?: string;
+          recebidos?: number;
+          saidas?: number;
+        };
+        Relationships: [];
+      };
       retencao_sincronizacoes: {
         Row: {
-          atualizados: number
-          erro: string | null
-          id: string
-          iniciado_em: string
-          novos: number
-          ok: boolean
-          origem: string
-          recebidos: number
-        }
+          atualizados: number;
+          erro: string | null;
+          id: string;
+          iniciado_em: string;
+          novos: number;
+          ok: boolean;
+          origem: string;
+          recebidos: number;
+        };
         Insert: {
-          atualizados?: number
-          erro?: string | null
-          id?: string
-          iniciado_em?: string
-          novos?: number
-          ok: boolean
-          origem?: string
-          recebidos?: number
-        }
+          atualizados?: number;
+          erro?: string | null;
+          id?: string;
+          iniciado_em?: string;
+          novos?: number;
+          ok: boolean;
+          origem?: string;
+          recebidos?: number;
+        };
         Update: {
-          atualizados?: number
-          erro?: string | null
-          id?: string
-          iniciado_em?: string
-          novos?: number
-          ok?: boolean
-          origem?: string
-          recebidos?: number
-        }
-        Relationships: []
-      }
-    }
+          atualizados?: number;
+          erro?: string | null;
+          id?: string;
+          iniciado_em?: string;
+          novos?: number;
+          ok?: boolean;
+          origem?: string;
+          recebidos?: number;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
       retencao_casos_situacao: {
         Row: {
-          anotacoes: Json | null
-          arquivado: boolean | null
-          arquivado_em: string | null
-          arquivado_motivo: string | null
-          arquivado_por: string | null
-          cliente_nome: string | null
-          contato_atrasado: boolean | null
-          contato_feito_em: string | null
-          created_at: string | null
-          criado_por_nome: string | null
-          dados: Json | null
-          data_finalizacao: string | null
-          data_preenchimento: string | null
-          data_solicitacao: string | null
-          dias_uteis_restantes: number | null
-          em_andamento_desde: string | null
-          email: string | null
-          encerrado_em: string | null
-          finalizado_por_nome: string | null
-          formulario_preenchido: boolean | null
-          id: string | null
-          id_appcrc: string | null
-          link: string | null
-          motivo_api: string | null
-          motivo_detalhe: string | null
-          observacao: string | null
-          origem_id: string | null
-          prazo_atrasado: boolean | null
-          prazo_contato: string | null
-          prazo_resolucao: string | null
-          primeiro_contato_api: string | null
-          primeiro_contato_em: string | null
-          responsavel_id: string | null
-          servicos: Json | null
-          servicos_restantes: string | null
-          sincronizado_em: string | null
-          solicitante: string | null
-          status: string | null
-          status_api: string | null
-          tags: string[] | null
-          telefone: string | null
-          tipo_finalizacao: string | null
-          updated_at: string | null
-        }
-        Relationships: []
-      }
+          anotacoes: Json | null;
+          arquivado: boolean | null;
+          arquivado_em: string | null;
+          arquivado_motivo: string | null;
+          arquivado_por: string | null;
+          cliente_nome: string | null;
+          contato_atrasado: boolean | null;
+          contato_feito_em: string | null;
+          created_at: string | null;
+          criado_por_nome: string | null;
+          dados: Json | null;
+          data_finalizacao: string | null;
+          data_preenchimento: string | null;
+          data_solicitacao: string | null;
+          dias_uteis_restantes: number | null;
+          em_andamento_desde: string | null;
+          email: string | null;
+          encerrado_em: string | null;
+          finalizado_por_nome: string | null;
+          formulario_preenchido: boolean | null;
+          id: string | null;
+          id_appcrc: string | null;
+          link: string | null;
+          motivo_api: string | null;
+          motivo_detalhe: string | null;
+          observacao: string | null;
+          origem_id: string | null;
+          prazo_atrasado: boolean | null;
+          prazo_contato: string | null;
+          prazo_resolucao: string | null;
+          primeiro_contato_api: string | null;
+          primeiro_contato_em: string | null;
+          responsavel_id: string | null;
+          servicos: Json | null;
+          servicos_restantes: string | null;
+          sincronizado_em: string | null;
+          solicitante: string | null;
+          status: string | null;
+          status_api: string | null;
+          tags: string[] | null;
+          telefone: string | null;
+          tipo_finalizacao: string | null;
+          updated_at: string | null;
+        };
+        Relationships: [];
+      };
       clientes: {
         Row: {
-          cidade: string | null
-          codigo_externo: string | null
-          contato_nome: string | null
-          created_at: string | null
-          email: string | null
-          id: string | null
-          nome: string | null
-          produtos: string[] | null
-          segmento: string | null
-          status_contrato: string | null
-          telefone: string | null
-          uf: string | null
-        }
-        Relationships: []
-      }
+          cidade: string | null;
+          codigo_externo: string | null;
+          contato_nome: string | null;
+          created_at: string | null;
+          email: string | null;
+          id: string | null;
+          nome: string | null;
+          produtos: string[] | null;
+          segmento: string | null;
+          status_contrato: string | null;
+          telefone: string | null;
+          uf: string | null;
+        };
+        Relationships: [];
+      };
       onboarding_etapas_situacao: {
         Row: {
-          concluida_em: string | null
-          concluida_por: string | null
-          descricao: string | null
-          dias_decorridos: number | null
-          dias_pausados: number | null
-          exige_checklist: boolean | null
-          fase_cor: string | null
-          fase_nome: string | null
-          id: string | null
-          iniciada_em: string | null
-          modelo_etapa_id: string | null
-          motivo: string | null
-          nome: string | null
-          obrigatoria: boolean | null
-          onboarding_id: string | null
-          ordem: number | null
-          papel_id: string | null
-          pausa_sla_aguardando_cliente: boolean | null
-          pausada_desde: string | null
-          prazo_em: string | null
-          principal: boolean | null
-          responsavel_id: string | null
-          situacao: string | null
-          sla_dias: number | null
-          status: string | null
-        }
-        Relationships: []
-      }
+          concluida_em: string | null;
+          concluida_por: string | null;
+          descricao: string | null;
+          dias_decorridos: number | null;
+          dias_pausados: number | null;
+          exige_checklist: boolean | null;
+          fase_cor: string | null;
+          fase_nome: string | null;
+          id: string | null;
+          iniciada_em: string | null;
+          modelo_etapa_id: string | null;
+          motivo: string | null;
+          nome: string | null;
+          obrigatoria: boolean | null;
+          onboarding_id: string | null;
+          ordem: number | null;
+          papel_id: string | null;
+          pausa_sla_aguardando_cliente: boolean | null;
+          pausada_desde: string | null;
+          prazo_em: string | null;
+          principal: boolean | null;
+          responsavel_id: string | null;
+          situacao: string | null;
+          sla_dias: number | null;
+          status: string | null;
+        };
+        Relationships: [];
+      };
       onboardings_resumo: {
         Row: {
-          calendario: string | null
-          campos: Json | null
-          cliente_id: string | null
-          cliente_nome: string | null
-          created_at: string | null
-          created_by: string | null
-          data_inicio: string | null
-          data_termino: string | null
-          etapa_atual_fase: string | null
-          etapa_atual_id: string | null
-          etapa_atual_nome: string | null
-          etapa_atual_prazo: string | null
-          etapa_atual_responsavel_id: string | null
-          etapa_atual_situacao: string | null
-          etapas_feitas: number | null
-          etapas_total: number | null
-          id: string | null
-          limiar_risco_pct: number | null
-          modelo_id: string | null
-          modelo_versao: number | null
-          motivo: string | null
-          previsao_termino: string | null
-          produto_cor: string | null
-          produto_id: string | null
-          produto_nome: string | null
-          situacao: string | null
-          status: string | null
-        }
-        Relationships: []
-      }
-    }
+          calendario: string | null;
+          campos: Json | null;
+          cliente_id: string | null;
+          cliente_nome: string | null;
+          created_at: string | null;
+          created_by: string | null;
+          data_inicio: string | null;
+          data_termino: string | null;
+          etapa_atual_fase: string | null;
+          etapa_atual_id: string | null;
+          etapa_atual_nome: string | null;
+          etapa_atual_prazo: string | null;
+          etapa_atual_responsavel_id: string | null;
+          etapa_atual_situacao: string | null;
+          etapas_feitas: number | null;
+          etapas_total: number | null;
+          id: string | null;
+          limiar_risco_pct: number | null;
+          modelo_id: string | null;
+          modelo_versao: number | null;
+          motivo: string | null;
+          previsao_termino: string | null;
+          produto_cor: string | null;
+          produto_id: string | null;
+          produto_nome: string | null;
+          situacao: string | null;
+          status: string | null;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
-      criar_modelo: { Args: { _produto_id: string; _nome: string }; Returns: string }
-      duplicar_modelo: { Args: { _modelo_id: string }; Returns: string }
-      ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined }
-      pode_revisar_vendas: { Args: never; Returns: boolean }
-      iniciar_onboardings_pendentes: { Args: { _cliente_id: string }; Returns: number }
-      publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined }
-      reabrir_etapa: { Args: { _etapa_id: string }; Returns: undefined }
-      dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number }
-      gere_produto: { Args: { _produto_id: string }; Returns: boolean }
-      has_any_users: { Args: never; Returns: boolean }
+      criar_modelo: { Args: { _produto_id: string; _nome: string }; Returns: string };
+      duplicar_modelo: { Args: { _modelo_id: string }; Returns: string };
+      ordenar_etapas_modelo: { Args: { _modelo_id: string; _etapas: Json }; Returns: undefined };
+      pode_revisar_vendas: { Args: never; Returns: boolean };
+      iniciar_onboardings_pendentes: { Args: { _cliente_id: string }; Returns: number };
+      publicar_modelo: { Args: { _modelo_id: string }; Returns: undefined };
+      reabrir_etapa: { Args: { _etapa_id: string }; Returns: undefined };
+      dias_entre: { Args: { _a: string; _b: string; _calendario?: string }; Returns: number };
+      gere_produto: { Args: { _produto_id: string }; Returns: boolean };
+      has_any_users: { Args: never; Returns: boolean };
       has_role: {
         Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
-      iniciar_onboarding: { Args: { _cliente_id: string; _produto_id: string }; Returns: string }
-      is_admin: { Args: never; Returns: boolean }
-      pode_operar: { Args: never; Returns: boolean }
-      somar_dias: { Args: { _data: string; _n: number; _calendario?: string }; Returns: string }
-    }
+          _role: Database["public"]["Enums"]["app_role"];
+          _user_id: string;
+        };
+        Returns: boolean;
+      };
+      iniciar_onboarding: { Args: { _cliente_id: string; _produto_id: string }; Returns: string };
+      is_admin: { Args: never; Returns: boolean };
+      pode_operar: { Args: never; Returns: boolean };
+      churn_carteira_dados: { Args: { inicio?: string | null }; Returns: Json };
+      sincronizar_clientes_base: { Args: { clientes: Json }; Returns: Json };
+      somar_dias: { Args: { _data: string; _n: number; _calendario?: string }; Returns: string };
+    };
     Enums: {
-      app_role: "admin" | "vendedor" | "cs" | "gestor" | "operador"
-    }
+      app_role: "admin" | "vendedor" | "cs" | "gestor" | "operador";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
@@ -1376,4 +1402,4 @@ export const Constants = {
       app_role: ["admin", "vendedor", "cs", "gestor", "operador"],
     },
   },
-} as const
+} as const;

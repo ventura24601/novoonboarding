@@ -1,5 +1,10 @@
 /** Análises da retenção (view de dash): semana a semana, mês a mês, churn por produto e tendência. */
 import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { sincronizarBaseAgora } from "@/lib/retencao.functions";
 import {
   Bar,
   CartesianGrid,
@@ -11,10 +16,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Info, Plus, X } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Info, Plus, RefreshCw, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  churnCarteira,
+  churnMensal,
   churnPorProduto,
+  type CasoCarteira,
+  type DadosCarteira,
   compararProdutos,
   produtosDosPedidos,
   porMesAnalise,
@@ -443,6 +452,206 @@ function CompararProdutos({
   );
 }
 
+const dataISO = (d: Date) => new Date(d.getTime() - 3 * 3600_000).toISOString().slice(0, 10); // dia em Brasília
+const dataBR = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
+
+/** Churn da carteira: cancelamentos ÷ base total de clientes ativos no início do período. */
+function ChurnCarteira({
+  casos,
+  inicio,
+  fim,
+}: {
+  casos: CasoCarteira[];
+  inicio: Date | null;
+  fim: Date | null;
+}) {
+  const [por, setPor] = useState<"produto" | "carteira">("produto");
+  const [coletando, setColetando] = useState(false);
+  const qc = useQueryClient();
+  const coletar = useServerFn(sincronizarBaseAgora);
+  const ini = inicio ? dataISO(inicio) : null;
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["churn-carteira", ini],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("churn_carteira_dados", { inicio: ini });
+      if (error) throw error;
+      return data as unknown as DadosCarteira;
+    },
+  });
+  const r = useMemo(
+    () => (data?.foto_data ? churnCarteira(data, casos, por, inicio, fim) : null),
+    [data, casos, por, inicio, fim],
+  );
+  const mensal = useMemo(() => (data?.foto_data ? churnMensal(data, casos, 6) : []), [data, casos]);
+  const maxMes = Math.max(0.0001, ...mensal.map((m) => m.churn ?? 0));
+  const atualizarBase = async () => {
+    setColetando(true);
+    try {
+      const x = await coletar();
+      if (!x.ok) throw new Error(x.erro ?? "Falha na coleta");
+      toast.success(`Base atualizada: ${x.ativos} clientes ativos.`);
+      await qc.invalidateQueries({ queryKey: ["churn-carteira"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha na coleta da base");
+    } finally {
+      setColetando(false);
+    }
+  };
+
+  return (
+    <Cartao
+      titulo="Churn da carteira"
+      ajuda="Cancelamentos no período ÷ clientes ativos no início do período (base total da gestão, coletada todo dia às 7h). Por produto, um cliente conta em cada produto que tem; segue as regras de contagem (Black pacote, Facebook = Redes, Discador só sozinho)."
+      acoes={
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border bg-white p-0.5">
+            {(["produto", "carteira"] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setPor(g)}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold ${por === g ? "bg-[#111827] text-white" : "text-muted-foreground"}`}
+              >
+                {g === "produto" ? "Por produto" : "Por carteira"}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={atualizarBase}
+            disabled={coletando}
+            className="inline-flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-[#F8FAFC] disabled:opacity-60"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${coletando ? "animate-spin" : ""}`} /> Atualizar
+            base
+          </button>
+        </div>
+      }
+    >
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando a base…</p>
+      ) : error ? (
+        <p className="text-sm text-destructive">Não foi possível carregar a base de clientes.</p>
+      ) : !r || !data ? (
+        <p className="text-sm text-muted-foreground">
+          A base de clientes ainda não foi coletada. Use “Atualizar base” para a primeira coleta.
+        </p>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              {
+                r: "Clientes ativos hoje",
+                v: r.total.baseAtual.toLocaleString("pt-BR"),
+                cor: "#111827",
+              },
+              {
+                r: "Base no início",
+                v: r.total.baseInicio.toLocaleString("pt-BR"),
+                cor: "#475569",
+              },
+              { r: "Clientes que cancelaram", v: r.total.cancelados, cor: "#B91C1C" },
+              { r: "Churn de clientes", v: pct(r.total.churn, 1), cor: "#B91C1C" },
+            ].map((k) => (
+              <div key={k.r} className="rounded-lg bg-[#F8FAFC] p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {k.r}
+                </div>
+                <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: k.cor }}>
+                  {k.v}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            {r.inicio.toLocaleDateString("pt-BR")} a {r.fim.toLocaleDateString("pt-BR")} · foto da
+            base de {dataBR(data.foto_data)}
+            {r.estimado &&
+              " · base do início estimada: foto da base + quem cancelou entre o início e a foto (o histórico começa na 1ª coleta)"}
+          </p>
+
+          <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_260px]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b">
+                  <tr>
+                    {[
+                      por === "produto" ? "Produto" : "Carteira",
+                      "Base no início",
+                      "Cancelados",
+                      "Churn",
+                      "Ativos hoje",
+                      "Saídas na base",
+                    ].map((h) => (
+                      <th key={h} className="filter-label whitespace-nowrap px-2 py-2 text-left">
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.linhas.map((l) => (
+                    <tr key={l.grupo} className="border-b last:border-0">
+                      <td className="whitespace-nowrap px-2 py-2.5 font-medium">{l.grupo}</td>
+                      <td className="px-2 py-2.5 tabular-nums">
+                        {l.baseInicio.toLocaleString("pt-BR")}
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums font-semibold text-[#B91C1C]">
+                        {l.cancelados}
+                      </td>
+                      <td className="px-2 py-2.5">
+                        <span
+                          className={`rounded px-1.5 py-0.5 text-xs font-bold tabular-nums ${l.churn == null ? "text-muted-foreground" : l.churn >= 0.1 ? "bg-[#FEE2E2] text-[#B91C1C]" : l.churn >= 0.04 ? "bg-[#FEF3C7] text-[#B45309]" : "bg-[#D1FAE5] text-[#065F46]"}`}
+                        >
+                          {pct(l.churn, 1)}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums text-muted-foreground">
+                        {l.baseAtual.toLocaleString("pt-BR")}
+                      </td>
+                      <td className="px-2 py-2.5 tabular-nums text-muted-foreground">
+                        {data.primeira_foto === data.ultima_foto ? "—" : l.saidasBase}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div className="filter-label mb-2">Churn de clientes mês a mês</div>
+              <div className="space-y-2">
+                {mensal.map((m) => (
+                  <div key={m.rotulo} className="flex items-center gap-2 text-xs">
+                    <span className="w-12 text-muted-foreground">{m.rotulo}</span>
+                    <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#F1F5F9]">
+                      <div
+                        className="h-full rounded-full bg-[#EF4444]"
+                        style={{ width: `${((m.churn ?? 0) / maxMes) * 100}%` }}
+                      />
+                    </div>
+                    <span
+                      className="w-24 text-right tabular-nums"
+                      title={`${m.cancelados} de ${m.baseInicio}`}
+                    >
+                      <b>{pct(m.churn, 1)}</b>{" "}
+                      <span className="text-muted-foreground">({m.cancelados})</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+                <Info className="mt-0.5 h-3 w-3 shrink-0" />
+                “Saídas na base” passa a ser medido a partir da 2ª coleta diária: produtos que
+                sumiram do cliente na gestão, mesmo sem pedido de cancelamento.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+    </Cartao>
+  );
+}
+
 export function RetencaoAnalises({
   comparar,
   casos,
@@ -458,7 +667,7 @@ export function RetencaoAnalises({
   inicio: Date | null;
   fim: Date | null;
   linha: string | null; // rótulo da linha (Redes, Black) quando há recorte
-  comparar: CasoAnalise[]; // mesmos filtros do dash, sem o recorte de linha/produto
+  comparar: CasoCarteira[]; // mesmos filtros do dash, sem o recorte de linha/produto
 }) {
   const [granularidade, setGranularidade] = useState<"semana" | "mes">("semana");
   // Com datas escolhidas, os períodos cobrem o intervalo; sem datas, últimas 12 semanas / 12 meses.
@@ -777,6 +986,8 @@ export function RetencaoAnalises({
           </div>
         )}
       </Cartao>
+
+      <ChurnCarteira casos={comparar} inicio={inicio} fim={fim} />
 
       <CompararProdutos casos={comparar} inicio={inicio} fim={fim} />
     </div>

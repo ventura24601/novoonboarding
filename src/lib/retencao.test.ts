@@ -596,3 +596,102 @@ describe("compararProdutos", () => {
   });
 });
 import { compararProdutos } from "./retencao";
+
+import { churnCarteira, churnMensal, produtoCanonico, type DadosCarteira } from "./retencao";
+
+describe("churn da carteira", () => {
+  it("nomes de produto iguais na base e nos pedidos", () => {
+    expect(produtoCanonico("IA Kit (Pro)")).toBe("IA Pro");
+    expect(produtoCanonico("Icombot")).toBe("ICOM Bot");
+    expect(produtoCanonico("ICOM Bot")).toBe("ICOM Bot");
+    expect(produtoCanonico("Marketing PRO 2.0")).toBe(produtoCanonico("Marketing Pro 2"));
+    expect(produtoCanonico("IA de vídeo")).toBe("IA de Vídeo");
+    expect(produtoCanonico("Google")).toBe("Google");
+  });
+
+  const agora = new Date("2026-11-20T12:00:00-03:00");
+  const dados: DadosCarteira = {
+    foto_data: "2026-11-20",
+    primeira_foto: "2026-11-20",
+    ultima_foto: "2026-11-20",
+    base: [
+      ["1", "Select", ["Facebook", "Discador"]],
+      ["2", "Select", ["Black", "Marketing PRO Black", "Discador"]],
+      ["3", "Infinity Clinic", ["Discador"]],
+      ["4", null, ["Google"]],
+    ],
+    atual: [
+      ["1", "Select", ["Facebook", "Discador"]],
+      ["2", "Select", ["Black", "Marketing PRO Black", "Discador"]],
+      ["3", "Infinity Clinic", ["Discador"]],
+      ["4", null, ["Google"]],
+    ],
+    contextos: { "5": "Select", "6": "Infinity Clinic" },
+    saidas: [],
+  };
+  // Cancelaram em novembro (antes da foto): estavam na base no início do mês.
+  const casos = [
+    {
+      id_appcrc: "5",
+      data_solicitacao: "2026-11-05T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [{ nome: "Redes", cancelado: true }],
+    },
+    {
+      id_appcrc: "6",
+      data_solicitacao: "2026-11-10T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [{ nome: "Google", cancelado: true }],
+    },
+    {
+      id_appcrc: "1",
+      data_solicitacao: "2026-11-12T10:00:00-03:00",
+      status: "revertido",
+      servicos: [{ nome: "Redes", cancelado: false }],
+    },
+    {
+      id_appcrc: "7",
+      data_solicitacao: "2026-10-03T10:00:00-03:00",
+      status: "finalizado",
+      servicos: [{ nome: "Google", cancelado: true }],
+    },
+  ];
+  const ini = new Date("2026-11-01T00:00:00-03:00");
+
+  it("por produto: base estimada = foto + quem cancelou depois do início", () => {
+    const r = churnCarteira(dados, casos, "produto", ini, agora, agora);
+    expect(r.estimado).toBe(true);
+    const g = Object.fromEntries(r.linhas.map((l) => [l.grupo, l]));
+    expect(g["Redes"]).toMatchObject({ baseInicio: 2, cancelados: 1, churn: 0.5, baseAtual: 1 });
+    expect(g["Google"]).toMatchObject({ baseInicio: 2, cancelados: 1, churn: 0.5, baseAtual: 1 });
+    expect(g["Black"]).toMatchObject({ baseInicio: 1, cancelados: 0, churn: 0 });
+    expect(g["Discador"]).toMatchObject({ baseInicio: 1, baseAtual: 1 }); // só o cliente 3 tem só Discador
+  });
+
+  it("por carteira e total de clientes", () => {
+    const r = churnCarteira(dados, casos, "carteira", ini, agora, agora);
+    const g = Object.fromEntries(r.linhas.map((l) => [l.grupo, l]));
+    expect(g["Select"]).toMatchObject({ baseInicio: 3, cancelados: 1, baseAtual: 2 });
+    expect(g["Infinity Clinic"]).toMatchObject({ baseInicio: 2, cancelados: 1 });
+    expect(g["Sem carteira"]).toMatchObject({ baseInicio: 1, cancelados: 0 });
+    expect(r.total).toEqual({ baseInicio: 6, cancelados: 2, churn: 2 / 6, baseAtual: 4 });
+  });
+
+  it("saídas registradas pela base contam no período", () => {
+    const d = {
+      ...dados,
+      atual: dados.atual.slice(0, 3),
+      saidas: [["4", "Google", "2026-11-20"]] as [string, string, string][],
+    };
+    const r = churnCarteira(d, casos, "carteira", ini, agora, agora);
+    expect(r.linhas.find((l) => l.grupo === "Sem carteira")?.saidasBase).toBe(1);
+  });
+
+  it("mês a mês", () => {
+    const m = churnMensal(dados, casos, 2, agora);
+    expect(m.map((x) => [x.rotulo, x.baseInicio, x.cancelados])).toEqual([
+      ["out/26", 7, 1],
+      ["nov/26", 6, 2],
+    ]);
+  });
+});

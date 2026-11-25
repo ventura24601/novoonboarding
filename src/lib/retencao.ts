@@ -586,6 +586,28 @@ export function funilRetencao(casos: CasoFunil[]) {
 
 export type Servico = { nome: string; cancelado: boolean };
 
+// A gestão escreve o mesmo produto de jeitos diferentes na base e nos pedidos (ex.: "IA Kit (Pro)" e "IA Pro").
+const ALIAS_PRODUTO: Record<string, string> = {
+  iakitpro: "IA Pro",
+  iapro: "IA Pro",
+  marketingpro2: "Marketing Pro 2.0",
+  marketingpro20: "Marketing Pro 2.0",
+  icombot: "ICOM Bot",
+  iadevideo: "IA de Vídeo",
+  iadeagendamento: "IA de Agendamento",
+  appcrc: "AppCRC",
+  appcrcstandalone: "AppCRC",
+  anovaprofissao: "A Nova Profissão",
+  redesiacombo: "Redes + IA (Combo)",
+  whatsappoficial: "WhatsApp Oficial",
+  discadorcomercial: "Discador Comercial",
+};
+/** Nome único do produto, igual na base de clientes e nos pedidos de cancelamento. */
+export function produtoCanonico(nome: string) {
+  const k = norm(nome).replace(/[^a-z0-9]/g, "");
+  return ALIAS_PRODUTO[k] ?? nome.trim();
+}
+
 /**
  * Serviços do pedido como devem ser contados nas métricas:
  * - Black é pacote: pedido com qualquer produto "Black" conta como 1 serviço "Black" (os itens do pacote não contam).
@@ -605,7 +627,7 @@ export function servicosParaContagem(servicos: unknown): Servico[] {
   }
   const porNome = new Map<string, Servico>();
   for (const s of lista) {
-    const nome = norm(s.nome) === "facebook" ? "Redes" : s.nome;
+    const nome = norm(s.nome) === "facebook" ? "Redes" : produtoCanonico(s.nome);
     const atual = porNome.get(nome);
     porNome.set(nome, { nome, cancelado: (atual?.cancelado ?? false) || s.cancelado });
   }
@@ -671,4 +693,172 @@ export function compararProdutos(
     return ponto;
   });
   return { resumo, serie };
+}
+
+// ---------- Churn da carteira (base total de clientes) ----------
+
+/** Cliente da base: [id_cliente, contexto (carteira), produtos ativos]. */
+export type ClienteBase = [string, string | null, string[]];
+export type CasoCarteira = CasoAnalise & { id_appcrc?: string | null };
+export type DadosCarteira = {
+  foto_data: string | null; // foto da base usada como início do período
+  primeira_foto: string | null;
+  ultima_foto: string | null;
+  base: ClienteBase[];
+  atual: ClienteBase[];
+  contextos: Record<string, string>; // carteira dos clientes que aparecem na retenção
+  saidas: [string, string, string][]; // [id_cliente, produto, data] produtos que saíram da base
+};
+export type LinhaChurn = {
+  grupo: string;
+  baseInicio: number;
+  cancelados: number;
+  churn: number | null;
+  baseAtual: number;
+  saidasBase: number;
+};
+export const SEM_CARTEIRA = "Sem carteira";
+
+/** Grupos do cliente: produtos (com as regras de contagem) ou a carteira (contexto). */
+export function gruposDoCliente(
+  produtos: string[],
+  contexto: string | null,
+  por: "produto" | "carteira",
+) {
+  if (por === "carteira") return produtos.length ? [contexto ?? SEM_CARTEIRA] : [];
+  return servicosParaContagem(produtos.map((nome) => ({ nome, cancelado: false }))).map(
+    (s) => s.nome,
+  );
+}
+
+/** Grupos perdidos num pedido encerrado: produtos cancelados, ou a carteira quando o pedido foi finalizado. */
+function perdasDoCaso(
+  c: CasoCarteira,
+  contextos: Record<string, string>,
+  por: "produto" | "carteira",
+) {
+  if (por === "carteira")
+    return c.status === "finalizado" ? [contextos[c.id_appcrc ?? ""] ?? SEM_CARTEIRA] : [];
+  if (!ENCERRADOS.includes(c.status as StatusRetencao)) return [];
+  return servicosCaso(c)
+    .filter((s) => s.cancelado)
+    .map((s) => s.nome);
+}
+
+const contar = (m: Map<string, number>, k: string, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
+const diaBR = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00-03:00`);
+
+/**
+ * Churn da carteira = cancelamentos no período ÷ base ativa no início do período.
+ * A API da base só traz a foto do dia, então a base do início vem da foto mais próxima. Quando essa foto é
+ * posterior ao início, somamos de volta quem cancelou entre o início e a foto (estimativa; marcada como tal).
+ * Cancelamentos vêm dos pedidos da retenção (data da solicitação).
+ */
+export function churnCarteira(
+  dados: DadosCarteira,
+  casos: CasoCarteira[],
+  por: "produto" | "carteira",
+  inicio: Date | null,
+  fim: Date | null,
+  agora = new Date(),
+) {
+  const datas = casos.map((c) => new Date(c.data_solicitacao).getTime());
+  const ini = inicio ?? new Date(datas.length ? Math.min(...datas) : agora.getTime());
+  const fi = fim ?? agora;
+  const foto = dados.foto_data ? diaBR(dados.foto_data) : null;
+  const estimado = !foto || foto.getTime() > ini.getTime();
+
+  const base = new Map<string, number>();
+  for (const [, ctx, prods] of dados.base)
+    for (const g of gruposDoCliente(prods, ctx, por)) contar(base, g);
+  const atual = new Map<string, number>();
+  for (const [, ctx, prods] of dados.atual)
+    for (const g of gruposDoCliente(prods, ctx, por)) contar(atual, g);
+
+  const canc = new Map<string, number>();
+  const devolver = new Map<string, number>(); // cancelaram entre o início e a foto: estavam na base no início
+  for (const c of casos) {
+    const t = new Date(c.data_solicitacao).getTime();
+    const perdas = perdasDoCaso(c, dados.contextos, por);
+    if (t >= ini.getTime() && t <= fi.getTime()) for (const g of perdas) contar(canc, g);
+    if (foto && t >= ini.getTime() && t < foto.getTime())
+      for (const g of perdas) contar(devolver, g);
+  }
+
+  // Saídas registradas pela própria base (a partir da 2ª coleta).
+  const ctxDe = new Map<string, string | null>();
+  for (const [id, ctx] of [...dados.base, ...dados.atual]) ctxDe.set(id, ctx);
+  const ativos = new Set(dados.atual.map(([id]) => id));
+  const saidas = new Map<string, Set<string>>();
+  for (const [id, produto, em] of dados.saidas) {
+    const t = diaBR(em).getTime();
+    if (t < ini.getTime() || t > fi.getTime()) continue;
+    let g: string | null;
+    if (por === "carteira")
+      g = ativos.has(id) ? null : (ctxDe.get(id) ?? dados.contextos[id] ?? SEM_CARTEIRA);
+    else g = gruposDoCliente([produto], null, "produto")[0] ?? null;
+    if (g) (saidas.get(g) ?? saidas.set(g, new Set()).get(g)!).add(`${id}|${g}`);
+  }
+
+  const grupos = new Set([...base.keys(), ...atual.keys(), ...canc.keys()]);
+  const linhas: LinhaChurn[] = [...grupos].map((grupo) => {
+    const baseInicio = (base.get(grupo) ?? 0) + (devolver.get(grupo) ?? 0);
+    const cancelados = canc.get(grupo) ?? 0;
+    return {
+      grupo,
+      baseInicio,
+      cancelados,
+      churn: baseInicio ? cancelados / baseInicio : null,
+      baseAtual: atual.get(grupo) ?? 0,
+      saidasBase: saidas.get(grupo)?.size ?? 0,
+    };
+  });
+  linhas.sort((a, b) => b.baseAtual - a.baseAtual || a.grupo.localeCompare(b.grupo, "pt-BR"));
+
+  // Total de clientes (não soma produtos: um cliente tem vários).
+  const totalBase =
+    dados.base.filter(([, , p]) => p.length).length +
+    casos.filter((c) => {
+      const t = new Date(c.data_solicitacao).getTime();
+      return c.status === "finalizado" && foto && t >= ini.getTime() && t < foto.getTime();
+    }).length;
+  const totalCanc = casos.filter((c) => {
+    const t = new Date(c.data_solicitacao).getTime();
+    return c.status === "finalizado" && t >= ini.getTime() && t <= fi.getTime();
+  }).length;
+  return {
+    linhas,
+    estimado,
+    inicio: ini,
+    fim: fi,
+    total: {
+      baseInicio: totalBase,
+      cancelados: totalCanc,
+      churn: totalBase ? totalCanc / totalBase : null,
+      baseAtual: dados.atual.filter(([, , p]) => p.length).length,
+    },
+  };
+}
+
+/** Churn de clientes mês a mês (últimos n meses), com a mesma estimativa da base no início de cada mês. */
+export function churnMensal(
+  dados: DadosCarteira,
+  casos: CasoCarteira[],
+  n = 6,
+  agora = new Date(),
+) {
+  const out: { rotulo: string; baseInicio: number; cancelados: number; churn: number | null }[] =
+    [];
+  for (let i = n - 1; i >= 0; i--) {
+    const ini = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    const fim = new Date(agora.getFullYear(), agora.getMonth() - i + 1, 0, 23, 59, 59, 999);
+    const r = churnCarteira(dados, casos, "carteira", ini, fim < agora ? fim : agora, agora);
+    out.push({
+      rotulo: `${MESES[ini.getMonth()]}/${String(ini.getFullYear()).slice(2)}`,
+      baseInicio: r.total.baseInicio,
+      cancelados: r.total.cancelados,
+      churn: r.total.churn,
+    });
+  }
+  return out;
 }
