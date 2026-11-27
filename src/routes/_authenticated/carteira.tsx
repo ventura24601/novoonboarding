@@ -5,7 +5,7 @@ import { Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOnboardings } from "@/lib/session";
 import { CLIENT_STATUS_TOKEN, STATUS_LABEL, type ClientStatus } from "@/lib/crm";
-import { Card, ColorBadge, EmptyState, FilterLabel, PageHeader, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, Card, ColorBadge, EmptyState, FilterLabel, PageHeader, StatusBadge } from "@/components/app/ui";
 import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/_authenticated/carteira")({
@@ -56,7 +56,8 @@ function Carteira() {
                 return (
                   <tr key={c.id} className="border-b last:border-0 hover:bg-[#FAFAFC]">
                     <td className="px-4 py-3"><Link to="/clientes/$id" params={{ id: c.id! }} className="font-semibold text-[#1F2937] hover:text-primary hover:underline">{c.nome}</Link>
-                      <div className="text-[11px] text-muted-foreground">{c.segmento ?? "—"}</div></td>
+                      <CarteiraBadge carteira={c.carteira} className="ml-1.5" />
+                      <div className="text-[11px] text-muted-foreground">{c.segmento ?? "—"}{c.origem === "base" ? " · entrada pela base" : ""}</div></td>
                     <td className="px-4 py-3 tabular-nums text-muted-foreground">{c.codigo_externo ?? "—"}</td>
                     <td className="px-4 py-3">{[c.cidade, c.uf].filter(Boolean).join("/") || "—"}</td>
                     <td className="px-4 py-3"><div>{c.contato_nome ?? "—"}</div><div className="text-[11px] text-muted-foreground">{c.telefone}</div></td>

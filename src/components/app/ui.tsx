@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { statusToken } from "@/lib/status";
+import { carteiraInfo } from "@/lib/carteira";
 
 /** Badge de status (11px, peso 700, raio 4px) com as cores de src/lib/status.ts. */
 export function StatusBadge({ status, label, className }: { status: string | null | undefined; label?: string; className?: string }) {
@@ -27,6 +28,21 @@ export function ColorBadge({ color, children }: { color: string; children: React
       style={{ backgroundColor: `${color}1A`, color }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
       {children}
+    </span>
+  );
+}
+
+/** Selo da carteira do cliente (Infinity, Select, Select Club). Nada quando não há carteira. */
+export function CarteiraBadge({ carteira, className }: { carteira: string | null | undefined; className?: string }) {
+  const c = carteiraInfo(carteira);
+  if (!c || c.value === "nenhuma") return null;
+  return (
+    <span
+      title={`Carteira ${c.label}`}
+      className={cn("inline-flex items-center whitespace-nowrap rounded border px-1.5 py-px text-[10px] font-bold uppercase leading-4 tracking-wide", className)}
+      style={{ borderColor: `${c.cor}55`, backgroundColor: `${c.cor}12`, color: c.cor }}
+    >
+      {c.label}
     </span>
   );
 }

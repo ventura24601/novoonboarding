@@ -47,3 +47,24 @@ export function planoDeOnboarding(args: {
   }
   return [...itens.values()].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
+
+/**
+ * Entrada manual (downgrade/reonboarding): onboardings sugeridos pelos produtos que o cliente tem hoje na base
+ * de clientes. Os nomes da base são comparados pelo nome unificado (produtoCanonico) e expandidos pelos vínculos.
+ */
+export function onboardingsSugeridos(args: {
+  produtosBase: string[];
+  produtos: { id: string; nome: string; ativo: boolean }[];
+  vinculos: { produto_id: string; onboarding_produto_id: string }[];
+  comModelo: Set<string>;
+  canonico: (nome: string) => string;
+}): string[] {
+  const nomes = new Set(args.produtosBase.map((n) => args.canonico(n)));
+  const out = new Set<string>();
+  for (const p of args.produtos) {
+    if (!p.ativo || !nomes.has(args.canonico(p.nome))) continue;
+    for (const v of args.vinculos)
+      if (v.produto_id === p.id && args.comModelo.has(v.onboarding_produto_id)) out.add(v.onboarding_produto_id);
+  }
+  return [...out];
+}

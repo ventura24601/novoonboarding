@@ -18,12 +18,14 @@ export interface StatusInput {
   contract_verified_at: string | null;
   onboarding_released_at: string | null;
   onboarding_completed_at: string | null;
+  /** "base" = entrou direto no onboarding (downgrade/reonboarding), sem a etapa de contratos. */
+  origem?: string | null;
 }
 
 /** Mesma regra da coluna status_contrato da view public.clientes. */
 export function clientStatus(c: StatusInput): ClientStatus {
   if (c.onboarding_completed_at) return "finalizado";
-  if (c.onboarding_released_at) return "em_onboarding";
+  if (c.onboarding_released_at || c.origem === "base") return "em_onboarding";
   if (!c.contract_signed) return "aguardando_assinatura";
   if (!c.paid) return "aguardando_pagamento";
   if (!c.contract_verified_at) return "aguardando_verificacao";

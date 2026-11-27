@@ -6,7 +6,8 @@ import { Pencil, Rocket } from "lucide-react";
 import { EnviarOnboardingDialog } from "@/components/app/enviar-onboarding";
 import { supabase } from "@/integrations/supabase/client";
 import { useSellers, useProdutos, useOnboardings } from "@/lib/session";
-import { ColorBadge, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, ColorBadge, StatusBadge } from "@/components/app/ui";
+import { CARTEIRAS, carteiraInfo, TIPO_ONBOARDING } from "@/lib/carteira";
 import { CLIENT_TYPES, STATUS_LABEL, CLIENT_STATUS_TOKEN, clientStatus, formatBRL } from "@/lib/crm";
 import {
   ACTIVATION_STATUSES, BILLING_SYSTEMS, PAYMENT_METHODS, clientEditSchema, clientFormFromRow,
@@ -141,7 +142,9 @@ function ClientSheet() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link to="/clientes" className="text-sm text-muted-foreground hover:underline">← Clientes</Link>
-          <h1 className="text-2xl font-semibold">{c.clinic_name}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
+            {c.clinic_name} <CarteiraBadge carteira={c.carteira} />
+          </h1>
           <p className="text-muted-foreground">{c.products.join(", ")} · {formatBRL(Number(c.value))} · Vendedor: {sellerName || "—"}</p>
         </div>
         {editing ? (
@@ -152,15 +155,17 @@ function ClientSheet() {
         ) : (
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={startEdit}><Pencil className="mr-2 h-4 w-4" />Editar dados</Button>
-            <Button type="button" onClick={() => setEnviando(true)}>
-              <Rocket className="mr-2 h-4 w-4" />{c.onboarding_released_at ? "Onboardings" : "Enviar para onboarding"}
-            </Button>
+            {c.origem !== "base" && (
+              <Button type="button" onClick={() => setEnviando(true)}>
+                <Rocket className="mr-2 h-4 w-4" />{c.onboarding_released_at ? "Onboardings" : "Enviar para onboarding"}
+              </Button>
+            )}
           </div>
         )}
         {enviando && <EnviarOnboardingDialog clienteId={c.id} onClose={() => setEnviando(false)} />}
       </div>
 
-      {!editing && missing.length > 0 && (
+      {!editing && missing.length > 0 && c.origem !== "base" && (
         <section className="rounded-xl border border-warning/40 bg-warning/10 p-4">
           <p className="text-sm font-medium">Faltam {missing.length} {missing.length === 1 ? "dado" : "dados"} na ficha</p>
           <p className="mt-1 text-sm text-muted-foreground">{missing.join(", ")}</p>
@@ -203,6 +208,11 @@ function ClientSheet() {
           </Section>
 
           <Section title="Diagnóstico">
+            <div className="max-w-sm">
+              <F id="carteira" label="É Infinity, Select ou Select Club?">
+                <Sel id="carteira" value={f.carteira} onChange={setV("carteira")} clearable options={CARTEIRAS.map((x) => ({ v: x.value, l: x.value === "nenhuma" ? "Nenhuma das três" : x.label }))} />
+              </F>
+            </div>
             <div className="grid gap-4 md:grid-cols-3">
               {([
                 { key: "has_crc", label: "Tem CRC" },
@@ -276,14 +286,14 @@ function ClientSheet() {
               <Row label="Status" value={<StatusBadge status={CLIENT_STATUS_TOKEN[st]} label={STATUS_LABEL[st]} />} />
               <Row label="Contrato assinado" value={c.contract_verified_at ? `Sim (verificado${c.contract_verification_source === "manual" ? " manualmente" : ""})` : c.contract_signed ? "Marcado, sem verificação" : "Não"} />
               <Row label="Pago" value={c.paid ? "Sim" : "Não"} />
-              <Row label="Liberado para onboarding" value={c.onboarding_released_at ? "Sim" : "Não"} />
+              <Row label="Liberado para onboarding" value={c.onboarding_released_at ? "Sim" : c.origem === "base" ? "Entrada manual pela base de clientes" : "Não"} />
             </div>
           </Section>
 
           <Section title="Onboarding" id="onboarding">
             {onbs.filter((o) => o.cliente_id === c.id).length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                {c.onboarding_released_at
+                {c.onboarding_released_at || c.origem === "base"
                   ? "Nenhum dos produtos contratados tem modelo de onboarding publicado."
                   : "O onboarding começa quando o cliente for liberado (pago e contrato verificado)."}
               </p>
@@ -293,6 +303,7 @@ function ClientSheet() {
                   <Link key={o.id} to="/onboardings/$id" params={{ id: o.id! }} className="-mx-2 flex items-center justify-between gap-4 rounded-md px-2 py-2.5 transition hover:bg-[#F8FAFC]">
                     <div className="flex items-center gap-3">
                       <ColorBadge color={o.produto_cor ?? "#7C3AED"}>{o.produto_nome}</ColorBadge>
+                      {o.tipo && TIPO_ONBOARDING[o.tipo] && <span className="text-[11px] font-semibold text-muted-foreground">{TIPO_ONBOARDING[o.tipo]}</span>}
                       <span className="text-sm">
                         {o.etapa_atual_nome ? <>Etapa atual: <b className="text-gold">{o.etapa_atual_nome}</b></> : "Todas as etapas concluídas"}
                         <span className="ml-2 text-xs text-muted-foreground">{o.etapas_feitas}/{o.etapas_total}</span>
@@ -325,6 +336,7 @@ function ClientSheet() {
 
           <Section title="Diagnóstico">
             <div className="space-y-0">
+              <Row label="Carteira" value={carteiraInfo(c.carteira)?.label} />
               <Row label="Tem CRC" value={c.has_crc == null ? null : c.has_crc ? "Sim" : "Não"} />
               <Row label="Já fez Marketing" value={c.has_marketing_experience == null ? null : c.has_marketing_experience ? "Sim" : "Não"} />
               <Row label="Tem Facebook" value={c.has_facebook == null ? null : c.has_facebook ? "Sim" : "Não"} />

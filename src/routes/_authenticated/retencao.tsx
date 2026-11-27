@@ -73,7 +73,8 @@ import { usePessoasAtivas } from "@/components/app/onboarding-edicao";
 import { RetencaoAnalises } from "@/components/app/retencao-analises";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { EmptyState, FilterLabel, KpiCard } from "@/components/app/ui";
+import { CarteiraBadge, EmptyState, FilterLabel, KpiCard } from "@/components/app/ui";
+import { carteiraDoContexto } from "@/lib/carteira";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -137,6 +138,8 @@ type CasoOk = Caso & {
   data_solicitacao: string;
   tags: string[];
   servicos_api?: unknown;
+  /** Carteira do cliente pela base de clientes (contexto), quando o id AppCRC está na base. */
+  carteira?: string | null;
 };
 const TODOS = "__todos__";
 const POR_PAGINA = 50;
@@ -237,7 +240,7 @@ function useCasos() {
   return useQuery({
     queryKey: ["retencao"],
     queryFn: async () => {
-      const [c, s] = await Promise.all([
+      const [c, s, k] = await Promise.all([
         supabase
           .from("retencao_casos_situacao")
           .select("*")
@@ -247,13 +250,16 @@ function useCasos() {
           .select("*")
           .order("iniciado_em", { ascending: false })
           .limit(1),
+        supabase.rpc("carteiras_retencao"),
       ]);
       if (c.error) throw c.error;
+      const contextos = (k.data ?? {}) as Record<string, string>;
       // Serviços contados pelas regras (Black pacote, Facebook = Redes, Discador só sozinho); originais em servicos_api.
       const casos = ((c.data ?? []) as CasoOk[]).map((x) => ({
         ...x,
         servicos_api: x.servicos,
         servicos: servicosParaContagem(x.servicos),
+        carteira: carteiraDoContexto(contextos[x.id_appcrc ?? ""]),
       }));
       return { casos, ultima: s.data?.[0] ?? null };
     },
@@ -1398,8 +1404,13 @@ function CartaoCaso({
             </span>
           )}
         </div>
-        {caso.cliente_nome && (
-          <div className="truncate text-xs text-[#334155]">{caso.cliente_nome}</div>
+        {(caso.cliente_nome || caso.carteira) && (
+          <div className="flex items-center gap-1.5">
+            {caso.cliente_nome && (
+              <span className="truncate text-xs text-[#334155]">{caso.cliente_nome}</span>
+            )}
+            <CarteiraBadge carteira={caso.carteira} className="shrink-0" />
+          </div>
         )}
         {caso.motivo_api && (
           <div
@@ -1563,6 +1574,7 @@ function Tabela({
                   >
                     {c.id_appcrc ?? "—"}
                   </button>
+                  <CarteiraBadge carteira={c.carteira} className="ml-1.5 align-middle" />
                   {c.cliente_nome && (
                     <div className="max-w-[180px] truncate text-[11px] text-muted-foreground">
                       {c.cliente_nome}
@@ -1905,6 +1917,7 @@ function PainelCaso({
           <SheetTitle className="flex items-center gap-2">
             {caso.id_appcrc ? `AppCRC ${caso.id_appcrc}` : "Sem ID AppCRC"}{" "}
             <BadgeStatus status={caso.status} />
+            <CarteiraBadge carteira={caso.carteira} />
           </SheetTitle>
           <SheetDescription>
             {caso.cliente_nome ?? "Cliente"} · solicitado em {dataHora(caso.data_solicitacao)}

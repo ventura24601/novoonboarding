@@ -84,10 +84,23 @@ describe("client edit form", () => {
     expect(missingClientFields({ clinic_name: "X", email: "a@b.com" })).not.toContain("E-mail");
     const full = {
       legal_name: "L", phone: "11", email: "a@b.com", document: "1", specialty: "Odonto", address: "Rua A",
-      city: "SP", seller_id: "u", activation_status: "Ativo", ic_id: "IC-1", financial_id: "F1", contract_id: "C1",
+      city: "SP", seller_id: "u", carteira: "select", activation_status: "Ativo", ic_id: "IC-1", financial_id: "F1", contract_id: "C1",
       billing_system: "vindi", payment_method: "pix", payment_value: 10, payment_modality: "Mensal", payment_date: "2026-11-04",
       has_crc: true, has_marketing_experience: false, has_facebook: true,
     };
     expect(missingClientFields(full)).toEqual([]);
+  });
+});
+
+describe("carteira", () => {
+  it("é obrigatória no cadastro e opcional na ficha", async () => {
+    const { clientBaseSchema } = await import("./client-form");
+    const base = { ...emptyClientForm(), clinic_name: "Clínica Vida", products: ["Black"], seller_id: "00000000-0000-0000-0000-000000000001" };
+    expect(clientBaseSchema.safeParse(base).success).toBe(false);
+    expect(clientBaseSchema.safeParse({ ...base, carteira: "select_club" }).success).toBe(true);
+    expect(clientEditSchema.safeParse({ ...emptyClientForm(), clinic_name: "Clínica Vida", products: ["Black"] }).success).toBe(true);
+    expect(missingClientFields({ clinic_name: "X" })).toContain("Carteira");
+    const ok = clientEditSchema.parse({ ...emptyClientForm(), clinic_name: "Clínica Vida", products: ["Black"], carteira: "infinity" });
+    expect(clientUpdatePayload(ok).carteira).toBe("infinity");
   });
 });

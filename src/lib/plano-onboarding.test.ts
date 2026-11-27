@@ -63,3 +63,25 @@ describe("planoDeOnboarding", () => {
     ).toEqual([]);
   });
 });
+
+describe("onboardingsSugeridos", () => {
+  it("usa o nome unificado e os vínculos, só com modelo publicado", async () => {
+    const { onboardingsSugeridos } = await import("./plano-onboarding");
+    const { produtoCanonico } = await import("./retencao");
+    const produtos = [
+      { id: "crc", nome: "AppCRC", ativo: true },
+      { id: "ag", nome: "IA de Agendamento", ativo: true },
+      { id: "pro", nome: "IA Pro", ativo: true },
+      { id: "vid", nome: "IA de Vídeo", ativo: true },
+    ];
+    const vinculos = [
+      { produto_id: "crc", onboarding_produto_id: "ag" },
+      { produto_id: "crc", onboarding_produto_id: "pro" },
+      { produto_id: "vid", onboarding_produto_id: "vid" },
+    ];
+    const r = onboardingsSugeridos({
+      produtosBase: ["App CRC", "IA de Video"], produtos, vinculos, comModelo: new Set(["ag", "vid"]), canonico: produtoCanonico,
+    });
+    expect(r.sort()).toEqual(["ag", "vid"]);
+  });
+});

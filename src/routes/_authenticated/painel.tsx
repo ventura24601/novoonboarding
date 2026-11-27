@@ -7,11 +7,13 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { z } from "zod";
 import {
-  Activity, AlarmClock, ArrowUpDown, CheckCircle2, Clock, Hourglass, Lock, Rocket,
+  Activity, AlarmClock, ArrowUpDown, CheckCircle2, Clock, Hourglass, Lock, Rocket, UserPlus,
 } from "lucide-react";
-import { useOnboardings, useProdutos, type OnboardingResumo } from "@/lib/session";
+import { useMe, useOnboardings, useProdutos, type OnboardingResumo } from "@/lib/session";
+import { TIPO_ONBOARDING } from "@/lib/carteira";
+import { OnboardingManualDialog } from "@/components/app/onboarding-manual";
 import { GRAVIDADE, STATUS, type Situacao } from "@/lib/status";
-import { Card, ColorBadge, EmptyState, FilterLabel, KpiCard, PageHeader, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, Card, ColorBadge, EmptyState, FilterLabel, KpiCard, PageHeader, StatusBadge } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -44,7 +46,9 @@ function Painel() {
   const navigate = useNavigate({ from: Route.fullPath });
   const { data: onbs = [], isLoading } = useOnboardings();
   const { data: produtos = [] } = useProdutos();
+  const { data: me } = useMe();
   const [q, setQ] = useState("");
+  const [adicionando, setAdicionando] = useState(false);
   const [sorting, setSorting] = useState<SortingState>([{ id: "situacao", desc: false }]);
 
   const doProduto = useMemo(() => onbs.filter((o) => !produto || o.produto_id === produto), [onbs, produto]);
@@ -62,9 +66,17 @@ function Painel() {
     {
       id: "cliente", accessorKey: "cliente_nome", header: "Cliente",
       cell: ({ row }) => (
-        <Link to="/onboardings/$id" params={{ id: row.original.id! }} className="font-semibold text-[#1F2937] hover:text-primary hover:underline">
-          {row.original.cliente_nome}
-        </Link>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link to="/onboardings/$id" params={{ id: row.original.id! }} className="font-semibold text-[#1F2937] hover:text-primary hover:underline">
+            {row.original.cliente_nome}
+          </Link>
+          <CarteiraBadge carteira={row.original.cliente_carteira} />
+          {row.original.tipo && TIPO_ONBOARDING[row.original.tipo] && (
+            <span className="rounded bg-[#F1F5F9] px-1.5 py-px text-[10px] font-bold uppercase leading-4 tracking-wide text-[#475569]">
+              {TIPO_ONBOARDING[row.original.tipo]}
+            </span>
+          )}
+        </div>
       ),
     },
     { id: "produto", accessorKey: "produto_nome", header: "Produto", cell: ({ row }) => <ColorBadge color={row.original.produto_cor ?? "#7C3AED"}>{row.original.produto_nome}</ColorBadge> },
@@ -109,8 +121,14 @@ function Painel() {
       <PageHeader
         title="Painel"
         description="Onboardings por linha de produto, com a situação de SLA da etapa atual."
-        actions={<Button variant="dark" asChild><Link to="/clientes"><Rocket /> Liberar clientes</Link></Button>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            {me?.podeOperar && <Button variant="outline" onClick={() => setAdicionando(true)}><UserPlus /> Adicionar cliente</Button>}
+            <Button variant="dark" asChild><Link to="/clientes"><Rocket /> Liberar clientes</Link></Button>
+          </div>
+        }
       />
+      {adicionando && <OnboardingManualDialog onClose={() => setAdicionando(false)} />}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">
         {KPIS.map((k) => (

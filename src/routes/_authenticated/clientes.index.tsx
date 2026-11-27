@@ -8,7 +8,7 @@ import { clientStatus, formatBRL, formatDuration, STATUS_LABEL, CLIENT_STATUS_TO
 import { useServerFn } from "@tanstack/react-start";
 import { confirmContractManually } from "@/lib/contract-verification.functions";
 import { EnviarOnboardingDialog } from "@/components/app/enviar-onboarding";
-import { PageHeader, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, PageHeader, StatusBadge } from "@/components/app/ui";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ function ClientsPage() {
               return (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <Link to="/clientes/$id" params={{ id: c.id }} className="font-medium hover:underline">{c.clinic_name}</Link>
+                    <div className="flex flex-wrap items-center gap-1.5"><Link to="/clientes/$id" params={{ id: c.id }} className="font-medium hover:underline">{c.clinic_name}</Link><CarteiraBadge carteira={c.carteira} /></div>
                     <div className="text-xs text-muted-foreground">{c.phone} {c.client_type === "aluno" ? "· Aluno" : "· Não aluno"}</div>
                   </TableCell>
                   <TableCell>{sellerName(c.seller_id)}</TableCell>

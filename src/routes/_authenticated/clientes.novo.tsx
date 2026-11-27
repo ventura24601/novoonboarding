@@ -9,6 +9,7 @@ import { useMe, useSellers } from "@/lib/session";
 import { CLIENT_TYPES } from "@/lib/crm";
 import { useProdutos } from "@/lib/session";
 import { clientBaseSchema } from "@/lib/client-form";
+import { CARTEIRAS } from "@/lib/carteira";
 import { formatarDocumento, observacaoDaVenda } from "@/lib/vendas";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,7 +49,7 @@ function NewClient() {
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState({
     clinic_name: "", phone: "", client_type: "nao_aluno", address: "", legal_name: "", specialty: "",
-    products: [] as string[], document: "", email: "", seller_id: "", notes: "",
+    products: [] as string[], document: "", email: "", seller_id: "", carteira: "", notes: "",
     current_scenario: "", goal: "", pain: "", special_condition: "", value: "",
     whatsapp: "", general_notes: "", has_crc: "", has_marketing_experience: "", has_facebook: "",
   });
@@ -188,6 +189,16 @@ function NewClient() {
 
       <section className="space-y-4 rounded-lg border bg-card p-6 shadow-card">
         <h2 className="font-semibold">Diagnóstico</h2>
+        <div className="max-w-sm">
+          <Field id="carteira" label="É Infinity, Select ou Select Club? *">
+            <Select value={f.carteira} onValueChange={(v) => setF((cur) => ({ ...cur, carteira: v }))}>
+              <SelectTrigger id="carteira"><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {CARTEIRAS.map((c) => <SelectItem key={c.value} value={c.value}>{c.value === "nenhuma" ? "Nenhuma das três" : c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </Field>
+        </div>
         <div className="grid gap-4 md:grid-cols-3">
           {([
             { key: "has_crc", label: "Tem CRC" },

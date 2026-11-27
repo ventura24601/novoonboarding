@@ -5,7 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe, useOnboardings } from "@/lib/session";
-import { Card, EmptyState, PageHeader, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, Card, EmptyState, PageHeader, StatusBadge } from "@/components/app/ui";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/minhas-etapas")({
@@ -33,7 +33,7 @@ function MinhasEtapas() {
       <PageHeader title="Minhas etapas" description="Etapas em que você é o responsável, das mais urgentes para as mais tranquilas." />
       {!isLoading && etapas.length === 0 ? (
         <EmptyState icon={ListChecks} title="Nenhuma etapa com você agora"
-          description="Quando um gestor atribuir você como responsável de uma etapa em andamento, ela aparece aqui com o prazo e a situação de SLA."
+          description="Quando alguém atribuir você como responsável de uma etapa em andamento, ela aparece aqui com o prazo e a situação de SLA."
           action={<Button variant="outline" asChild><Link to="/painel">Ver todos os onboardings</Link></Button>} />
       ) : (
         <Card className="divide-y">
@@ -44,7 +44,7 @@ function MinhasEtapas() {
                 className="flex items-center justify-between gap-4 px-5 py-3.5 transition hover:bg-[#FAFAFC]">
                 <div className="min-w-0">
                   <div className="font-semibold text-gold">{e.nome}</div>
-                  <div className="text-xs text-muted-foreground">{o?.cliente_nome} · {o?.produto_nome} · {e.fase_nome}</div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">{o?.cliente_nome} · {o?.produto_nome} · {e.fase_nome} <CarteiraBadge carteira={o?.cliente_carteira} /></div>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="tabular-nums text-muted-foreground">{e.prazo_em ? format(parseISO(e.prazo_em), "dd/MM/yyyy", { locale: ptBR }) : "—"}</span>

@@ -65,11 +65,16 @@ const clinicFields = {
   notes: z.string().max(2000),
 };
 
-/** Cadastro de novo cliente: vendedor obrigatório. */
+const CARTEIRA_VALORES = ["infinity", "select", "select_club", "nenhuma"] as const;
+
+/** Cadastro de novo cliente (e revisão da venda): vendedor e carteira obrigatórios. */
 export const clientBaseSchema = z
   .object(clinicFields)
   .merge(clientDiagnosticsSchema)
-  .extend({ seller_id: z.string().uuid("Selecione o vendedor") });
+  .extend({
+    seller_id: z.string().uuid("Selecione o vendedor"),
+    carteira: z.enum(CARTEIRA_VALORES, { errorMap: () => ({ message: "Informe se é Infinity, Select ou Select Club" }) }),
+  });
 
 /** Ficha do cliente: mesmos dados da venda + ativação, localização e pagamento. */
 export const clientEditSchema = z
@@ -89,7 +94,10 @@ export const clientEditSchema = z
     payment_date: z.string().trim().max(20),
   })
   .merge(clientDiagnosticsSchema)
-  .extend({ seller_id: z.union([z.literal(""), z.string().uuid("Selecione o vendedor")]) });
+  .extend({
+    seller_id: z.union([z.literal(""), z.string().uuid("Selecione o vendedor")]),
+    carteira: z.enum(["", ...CARTEIRA_VALORES]),
+  });
 
 export type ClientEdit = z.infer<typeof clientEditSchema>;
 
@@ -104,6 +112,7 @@ export type ClientForm = {
   address: string;
   client_type: string;
   seller_id: string;
+  carteira: string;
   products: string[];
   current_scenario: string;
   goal: string;
@@ -132,7 +141,7 @@ export type ClientForm = {
 export function emptyClientForm(): ClientForm {
   return {
     clinic_name: "", legal_name: "", phone: "", whatsapp: "", email: "", document: "", specialty: "",
-    address: "", client_type: "nao_aluno", seller_id: "", products: [], current_scenario: "", goal: "",
+    address: "", client_type: "nao_aluno", seller_id: "", carteira: "", products: [], current_scenario: "", goal: "",
     pain: "", special_condition: "", value: "", notes: "", general_notes: "", has_crc: "",
     has_marketing_experience: "", has_facebook: "", activation_status: "", ic_id: "", financial_id: "",
     contract_id: "", cep: "", city: "", state: "", billing_system: "", payment_method: "",
@@ -179,6 +188,7 @@ export function clientUpdatePayload(d: ClientEdit) {
     address: t(d.address),
     client_type: d.client_type,
     seller_id: d.seller_id || null,
+    carteira: d.carteira || null,
     products: d.products,
     current_scenario: t(d.current_scenario),
     goal: t(d.goal),
@@ -214,6 +224,7 @@ const MISSING_CHECKS: { label: string; filled: (r: Record<string, unknown>) => b
   { label: "Endereço", filled: (r) => Boolean(t(String(r["address"] ?? ""))) },
   { label: "Cidade/UF", filled: (r) => Boolean(t(String(r["city"] ?? ""))) },
   { label: "Vendedor", filled: (r) => Boolean(r["seller_id"]) },
+  { label: "Carteira", filled: (r) => Boolean(r["carteira"]) },
   { label: "Status ativação", filled: (r) => Boolean(t(String(r["activation_status"] ?? ""))) },
   { label: "ID/IC", filled: (r) => Boolean(t(String(r["ic_id"] ?? ""))) },
   { label: "ID Financeiro", filled: (r) => Boolean(t(String(r["financial_id"] ?? ""))) },

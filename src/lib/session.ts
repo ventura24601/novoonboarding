@@ -100,13 +100,16 @@ export type ClientRow = {
   payment_method: string | null;
   city: string | null;
   state: string | null;
+  carteira: string | null;
+  origem: string;
 };
 
 export function useClients() {
   return useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("*").order("created_at", { ascending: false });
+      // Só a etapa de contratos: clientes que entraram direto no onboarding pela base ficam de fora.
+      const { data, error } = await supabase.from("clients").select("*").eq("origem", "contrato").order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((c) => ({ ...c, value: Number(c.value) })) as ClientRow[];
     },

@@ -10,6 +10,8 @@ export type Database = {
     Tables: {
       clients: {
         Row: {
+          carteira: string | null;
+          origem: string;
           activation_status: string | null;
           address: string | null;
           billing_system: string | null;
@@ -64,6 +66,8 @@ export type Database = {
           whatsapp_group: boolean;
         };
         Insert: {
+          carteira?: string | null;
+          origem?: string;
           activation_status?: string | null;
           address?: string | null;
           billing_system?: string | null;
@@ -118,6 +122,8 @@ export type Database = {
           whatsapp_group?: boolean;
         };
         Update: {
+          carteira?: string | null;
+          origem?: string;
           activation_status?: string | null;
           address?: string | null;
           billing_system?: string | null;
@@ -577,6 +583,7 @@ export type Database = {
       };
       onboardings: {
         Row: {
+          tipo: string;
           campos: Json;
           cliente_id: string;
           created_at: string;
@@ -592,6 +599,7 @@ export type Database = {
           status: string;
         };
         Insert: {
+          tipo?: string;
           campos?: Json;
           cliente_id: string;
           created_at?: string;
@@ -607,6 +615,7 @@ export type Database = {
           status?: string;
         };
         Update: {
+          tipo?: string;
           campos?: Json;
           cliente_id?: string;
           created_at?: string;
@@ -1173,6 +1182,8 @@ export type Database = {
       };
       clientes: {
         Row: {
+          carteira: string | null;
+          origem: string | null;
           cidade: string | null;
           codigo_externo: string | null;
           contato_nome: string | null;
@@ -1220,6 +1231,9 @@ export type Database = {
       };
       onboardings_resumo: {
         Row: {
+          cliente_carteira: string | null;
+          cliente_origem: string | null;
+          tipo: string | null;
           calendario: string | null;
           campos: Json | null;
           cliente_id: string | null;
@@ -1273,6 +1287,19 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean };
       pode_operar: { Args: never; Returns: boolean };
       churn_carteira_dados: { Args: { inicio?: string | null }; Returns: Json };
+      buscar_clientes_base: { Args: { _q: string }; Returns: Json };
+      carteiras_retencao: { Args: never; Returns: Json };
+      onboarding_manual: {
+        Args: {
+          _tipo: string;
+          _produtos: string[];
+          _id_base?: string | null;
+          _nome?: string | null;
+          _carteira?: string | null;
+          _cliente_id?: string | null;
+        };
+        Returns: Json;
+      };
       sincronizar_clientes_base: { Args: { clientes: Json }; Returns: Json };
       somar_dias: { Args: { _data: string; _n: number; _calendario?: string }; Returns: string };
     };

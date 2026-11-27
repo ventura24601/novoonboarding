@@ -25,13 +25,22 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useMe, useSellers } from "@/lib/session";
 import { ETAPA_STATUS_LABEL, statusToken } from "@/lib/status";
-import { Card, ColorBadge, StatusBadge } from "@/components/app/ui";
+import { CarteiraBadge, Card, ColorBadge, StatusBadge } from "@/components/app/ui";
 import {
   AcoesEtapa,
   EditarOnboarding,
   marcarItem,
+  usePessoasAtivas,
   useRecarregarOnboarding,
 } from "@/components/app/onboarding-edicao";
+import { TIPO_ONBOARDING } from "@/lib/carteira";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -209,6 +218,12 @@ function DetalheOnboarding() {
             <div className="flex flex-wrap items-center gap-2">
               <ColorBadge color={r.produto_cor ?? "#7C3AED"}>{r.produto_nome}</ColorBadge>
               <StatusBadge status={r.situacao} />
+              <CarteiraBadge carteira={r.cliente_carteira} />
+              {r.tipo && TIPO_ONBOARDING[r.tipo] && (
+                <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-[11px] font-bold text-[#475569]">
+                  {TIPO_ONBOARDING[r.tipo]}
+                </span>
+              )}
               {r.status &&
                 r.status !== "em_andamento" &&
                 r.status !== "concluido" &&
@@ -517,6 +532,12 @@ function LinhaEtapa({
             encerrado={encerrado}
             checklistPendente={pendentesObrigatorios}
           />
+          <ResponsavelEtapa
+            etapa={etapa}
+            onboardingId={onboardingId}
+            editavel={podeOperar && !encerrado}
+            nome={responsavel}
+          />
           <div className="grid gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
             <span>
               Status:{" "}
@@ -746,11 +767,90 @@ function Comentarios({
   );
 }
 
+const SEM_RESP = "__sem__";
+
+/** Responsável da etapa, escolhido direto no painel da etapa por quem opera o onboarding. */
+function ResponsavelEtapa({
+  etapa,
+  onboardingId,
+  editavel,
+  nome,
+}: {
+  etapa: Etapa;
+  onboardingId: string;
+  editavel: boolean;
+  nome: string | null;
+}) {
+  const { data: pessoas = [] } = usePessoasAtivas();
+  const recarregar = useRecarregarOnboarding(onboardingId);
+  const [salvando, setSalvando] = useState(false);
+  const atual = etapa.responsavel_id ?? SEM_RESP;
+
+  async function trocar(v: string) {
+    if (v === atual) return;
+    setSalvando(true);
+    const { error } = await supabase
+      .from("onboarding_etapas")
+      .update({ responsavel_id: v === SEM_RESP ? null : v })
+      .eq("id", etapa.id!);
+    setSalvando(false);
+    if (error) {
+      toast.error(
+        /row-level|permission/i.test(error.message)
+          ? "Seu perfil não pode alterar o responsável."
+          : error.message,
+      );
+      return;
+    }
+    await recarregar();
+    const p = pessoas.find((x) => x.id === v);
+    toast.success(p ? `Responsável: ${p.full_name || p.email}` : "Etapa sem responsável.");
+  }
+
+  if (!editavel)
+    return (
+      <div className="text-xs text-muted-foreground">
+        Responsável: <b className="text-foreground">{nome ?? "Sem responsável"}</b>
+      </div>
+    );
+  // Pessoa inativa que ainda está na etapa continua aparecendo na lista.
+  const opcoes =
+    etapa.responsavel_id && !pessoas.some((p) => p.id === etapa.responsavel_id)
+      ? [
+          { id: etapa.responsavel_id, full_name: nome ?? "Responsável atual", email: "" },
+          ...pessoas,
+        ]
+      : pessoas;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <label htmlFor={`resp-${etapa.id}`}>Responsável:</label>
+      <Select value={atual} onValueChange={trocar} disabled={salvando}>
+        <SelectTrigger
+          id={`resp-${etapa.id}`}
+          className="h-8 w-60 bg-white text-sm text-foreground"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={SEM_RESP}>Sem responsável</SelectItem>
+          {opcoes.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.full_name || p.email}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 function textoEvento(ev: Evento, nomePessoa: (id: string | null | undefined) => string | null) {
   const quem = nomePessoa(ev.user_id);
   const rot = (s: string | null) => (s ? (ETAPA_STATUS_LABEL[s] ?? STATUS_ONB[s] ?? s) : "—");
   let t: string;
-  if (ev.tipo === "etapa_status") t = `${rot(ev.de)} → ${rot(ev.para)}`;
+  if (ev.tipo === "responsavel")
+    t = `Responsável: ${nomePessoa(ev.de) ?? "ninguém"} → ${nomePessoa(ev.para) ?? "ninguém"}`;
+  else if (ev.tipo === "etapa_status") t = `${rot(ev.de)} → ${rot(ev.para)}`;
   else if (ev.tipo === "onboarding_status") t = `Onboarding: ${rot(ev.de)} → ${rot(ev.para)}`;
   else t = ev.detalhe ?? ev.tipo;
   if (ev.detalhe && ev.tipo !== "criado" && ev.tipo.endsWith("status")) t += ` (${ev.detalhe})`;
